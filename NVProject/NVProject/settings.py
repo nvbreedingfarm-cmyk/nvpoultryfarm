@@ -143,3 +143,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+if os.getenv("CREATE_ADMIN", "False") == "True":
+    import sys
+    sys.path.insert(0, str(BASE_DIR.parent))
+    from create_admin import create_default_superuser
+    create_default_superuser()
+
