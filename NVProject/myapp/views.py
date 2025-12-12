@@ -180,7 +180,7 @@ def feed(request):
 def males(request):
     user_groups = request.user.groups.all()
     u = request.user
-    return render(request, "males.html", {'user_groups': user_groups, 'u': u})
+    return render(request, "Males.html", {'user_groups': user_groups, 'u': u})
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 @login_required()
