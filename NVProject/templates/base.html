@@ -1,880 +1,319 @@
-{% extends 'base.html' %}
-
-{% block title %}Dashboard - NV Poultry Farm{% endblock %}
-
-{% block content %}
-<div class="container py-4">
-    <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0" style="color: #2c5282;  font-weight: 600; font-size: 1.25rem;">
-            <i class="fas fa-feather-alt me-2"></i>SIAF Statistics
-        </h2>
-        <div class="d-flex align-items-center gap-3">
-            <div class="date-selector">
-                <input type="date" id="dashboard-date" class="form-control" value="{{ today_date|date:'Y-m-d' }}"
-                    onchange="updateDashboard(this.value)">
-            </div>
-            <div class="date-display p-2 rounded" style="background: rgba(66, 153, 225, 0.1); color: #2c5282;">
-                <i class="far fa-calendar-alt me-2"></i><span id="display-date">{{ today_date|date:"F d, Y" }}</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- SIAF Stats Cards - 5 Cards Layout -->
-    <div class="row g-4">
-        <!-- Egg Percentage Card -->
-        <div class="col-xl-2-5">
-            <div class="card egg-percentage-card h-100 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="rounded-circle p-3 me-3">
-                            <i class="fas fa-chart-pie fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="card-title mb-0">Egg Percentage</h6>
-                            <small class="text-muted">Eggs per bird</small>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-baseline">
-                        <h3 class="mb-0 me-2" style="font-weight: 700;">{{ egg_percentage }}</h3>
-                        <span class="text-muted">%</span>
-                    </div>
-                    {% if not siaf_record_exists %}
-                    <small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>No record for today</small>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- SIAF Total Eggs Card -->
-        <div class="col-xl-2-5">
-            <div class="card siaf-eggs-card h-100 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="rounded-circle p-3 me-3">
-                            <i class="fas fa-egg fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="card-title mb-0">SIAF Total Eggs</h6>
-                            <small class="text-muted">Total eggs collected</small>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-baseline">
-                        <h3 class="mb-0 me-2" style="font-weight: 700;">{{ siaf_total_eggs }}</h3>
-                        <span class="text-muted">Eggs</span>
-                    </div>
-                    {% if not siaf_record_exists %}
-                    <small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>No record for today</small>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Feed Per Bird Card -->
-        <div class="col-xl-2-5">
-            <div class="card feed-per-bird-card h-100 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="rounded-circle p-3 me-3">
-                            <i class="fas fa-balance-scale fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="card-title mb-0">Feed Per Bird</h6>
-                            <small class="text-muted">Today's intake</small>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-baseline">
-                        <h3 class="mb-0 me-2" style="font-weight: 700;">{{ feed_per_gram_per_bird }}</h3>
-                        <span class="text-muted">gm</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Male Feed Per Bird Card -->
-        <div class="col-xl-2-5">
-            <div class="card male-feed-bird-card h-100 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="rounded-circle p-3 me-3">
-                            <i class="fas fa-drumstick-bite fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="card-title mb-0">Male Feed</h6>
-                            <small class="text-muted">Per male bird</small>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-baseline">
-                        <h3 class="mb-0 me-2" style="font-weight: 700;">{{ male_feed_per_bird }}</h3>
-                        <span class="text-muted">gm</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Female Feed Per Bird Card -->
-        <div class="col-xl-2-5">
-            <div class="card female-feed-bird-card h-100 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="rounded-circle p-3 me-3">
-                            <i class="fas fa-egg fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="card-title mb-0">Female Feed</h6>
-                            <small class="text-muted">Per female bird</small>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-baseline">
-                        <h3 class="mb-0 me-2" style="font-weight: 700;">{{ female_feed_per_bird }}</h3>
-                        <span class="text-muted">gm</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Birds Count Section -->
-    <div class="row g-4 mt-2">
-        <h3 class="mb-3 mt-2" style="color: #2c5282; font-weight: 600;">Bird Count Summary</h3>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NV Poultry Farm{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #0d066b;
+            --primary-dark: #919145;
+            --primary-light: #4C7F4F;
+            --accent: #FF9800;
+            --light-bg: #F8FAF6;
+            --dark-text: #333333;
+            --light-text: #FFFFFF;
+            --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
         
-        <!-- Total Birds Card -->
-        <div class="col-xl-1-7">
-            <div class="card total-birds-card h-100 border-0 shadow-sm">
-                <div class="card-body p-2">
-                    <div class="d-flex flex-column align-items-center text-center mb-2">
-                        <div class="rounded-circle p-2 mb-2" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-users fa-sm"></i>
-                        </div>
-                        <h6 class="card-title mb-0" style="font-size: 0.85rem;">Total Birds</h6>
-                        <small class="text-muted" style="font-size: 0.65rem;">Males + Females</small>
-                    </div>
-                    <div class="text-center">
-                        <h3 class="mb-0" style="font-weight: 700; font-size: 1.5rem;" id="total-birds-count">{{ total_current_birds }}</h3>
-                        <small class="text-muted" style="font-size: 0.65rem;">Birds</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Male Birds Card (3rd) -->
-        <div class="col-xl-1-7">
-            <div class="card male-birds-card h-100 border-0 shadow-sm">
-                <div class="card-body p-2">
-                    <div class="d-flex flex-column align-items-center text-center mb-2">
-                        <div class="rounded-circle p-2 mb-2" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-feather fa-sm"></i>
-                        </div>
-                        <h6 class="card-title mb-0" style="font-size: 0.85rem;">Male Birds</h6>
-                        <small class="text-muted" style="font-size: 0.65rem;">Current count</small>
-                    </div>
-                    <div class="text-center">
-                        <h3 class="mb-0" style="font-weight: 700; font-size: 1.5rem;" id="male-birds-count">{{ male_current_birds }}</h3>
-                        <small class="text-muted" style="font-size: 0.65rem;">Birds</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Female Birds Card (5th) -->
-        <div class="col-xl-1-7">
-            <div class="card female-birds-card h-100 border-0 shadow-sm">
-                <div class="card-body p-2">
-                    <div class="d-flex flex-column align-items-center text-center mb-2">
-                        <div class="rounded-circle p-2 mb-2" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-dove fa-sm"></i>
-                        </div>
-                        <h6 class="card-title mb-0" style="font-size: 0.85rem;">Female Birds</h6>
-                        <small class="text-muted" style="font-size: 0.65rem;">Current count</small>
-                    </div>
-                    <div class="text-center">
-                        <h3 class="mb-0" style="font-weight: 700; font-size: 1.5rem;" id="female-birds-count">{{ female_current_birds }}</h3>
-                        <small class="text-muted" style="font-size: 0.65rem;">Birds</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Male Mortality Card (5th) -->
-        <div class="col-xl-1-7">
-            <div class="card male-mortality-card h-100 border-0 shadow-sm">
-                <div class="card-body p-2">
-                    <div class="d-flex flex-column align-items-center text-center mb-2">
-                        <div class="rounded-circle p-2 mb-2" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-heart-broken fa-sm"></i>
-                        </div>
-                        <h6 class="card-title mb-0" style="font-size: 0.85rem;">Male Mortality</h6>
-                        <small class="text-muted" style="font-size: 0.65rem;">Today's deaths</small>
-                    </div>
-                    <div class="text-center">
-                        <h3 class="mb-0" style="font-weight: 700; font-size: 1.5rem;" id="male-mortality-count">{{ male_today_mortality }}</h3>
-                        <small class="text-muted" style="font-size: 0.65rem;">Birds</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Female Mortality Card (6th) -->
-        <div class="col-xl-1-7">
-            <div class="card female-mortality-card h-100 border-0 shadow-sm">
-                <div class="card-body p-2">
-                    <div class="d-flex flex-column align-items-center text-center mb-2">
-                        <div class="rounded-circle p-2 mb-2" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-heart-broken fa-sm"></i>
-                        </div>
-                        <h6 class="card-title mb-0" style="font-size: 0.85rem;">Female Mortality</h6>
-                        <small class="text-muted" style="font-size: 0.65rem;">Today's deaths</small>
-                    </div>
-                    <div class="text-center">
-                        <h3 class="mb-0" style="font-weight: 700; font-size: 1.5rem;" id="female-mortality-count">{{ female_today_mortality }}</h3>
-                        <small class="text-muted" style="font-size: 0.65rem;">Birds</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-</div>
-
-</div>
-
-<!-- Add custom styles -->
-<style>
-    body {
-        background-color: #f0f2f5;
-        min-height: 100vh;
-    }
-
-    .container {
-        background-color: #f8fafc;
-        border-radius: 15px;
-        padding: 1.5rem;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
-        max-height: 100vh;
-        overflow-y: auto;
-    }
-
-    .card {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        border-radius: 12px;
-        min-height: 140px;
-    }
-
-    .row.g-4 {
-        margin-bottom: 1rem;
-    }
-
-    .mt-4 {
-        margin-top: 1rem !important;
-    }
-
-    .card-body {
-        padding: 1rem;
-    }
-
-    .col-md-4 {
-        flex: 0 0 auto;
-        width: 33.33333%;
-    }
-
-    /* Feed Card */
-    .card.feed-card {
-        background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
-        color: white;
-    }
-
-    .feed-card .card-title,
-    .feed-card .text-muted,
-    .feed-card h3,
-    .feed-card span {
-        color: white !important;
-    }
-
-    .feed-card .rounded-circle {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .feed-card i {
-        color: white !important;
-    }
-
-    /* SIAF Tray Eggs Card */
-    .card.siaf-tray-card {
-        background: linear-gradient(135deg, #f6ad55 0%, #d69e2e 100%);
-        color: white;
-    }
-
-    .siaf-tray-card .card-title,
-    .siaf-tray-card .text-muted,
-    .siaf-tray-card h3,
-    .siaf-tray-card span {
-        color: white !important;
-    }
-
-    .siaf-tray-card .rounded-circle {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .siaf-tray-card i {
-        color: white !important;
-    }
-
-    /* SIAF Total Eggs Card */
-    .card.siaf-eggs-card {
-        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-        color: white;
-    }
-
-    .siaf-eggs-card .card-title,
-    .siaf-eggs-card .text-muted,
-    .siaf-eggs-card h3,
-    .siaf-eggs-card span {
-        color: white !important;
-    }
-
-    .siaf-eggs-card .rounded-circle {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .siaf-eggs-card i {
-        color: white !important;
-    }
-
-    /* Male Birds Card */
-    .card.male-birds-card {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white;
-    }
-
-    .male-birds-card .card-title,
-    .male-birds-card .text-muted,
-    .male-birds-card h3,
-    .male-birds-card span,
-    .male-birds-card small {
-        color: white !important;
-    }
-
-    .male-birds-card .rounded-circle {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .male-birds-card i {
-        color: white !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-
-    /* Female Birds Card */
-    .card.female-birds-card {
-        background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
-        color: white;
-    }
-
-    .female-birds-card .card-title,
-    .female-birds-card .text-muted,
-    .female-birds-card h3,
-    .female-birds-card span,
-    .female-birds-card small {
-        color: white !important;
-    }
-
-    .female-birds-card .rounded-circle {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .female-birds-card i {
-        color: white !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-
-    /* Total Birds Card */
-    .card.total-birds-card {
-        background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-        color: white;
-    }
-
-    .total-birds-card .card-title,
-    .total-birds-card .text-muted,
-    .total-birds-card h3,
-    .total-birds-card span,
-    .total-birds-card small {
-        color: white !important;
-    }
-
-    .total-birds-card .rounded-circle {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .total-birds-card i {
-        color: white !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-
-    /* Male Mortality Card */
-    .card.male-mortality-card {
-        background: linear-gradient(135deg, #f97316 0%, #d97706 100%);
-        color: white;
-    }
-
-    .male-mortality-card .card-title,
-    .male-mortality-card .text-muted,
-    .male-mortality-card h3,
-    .male-mortality-card span,
-    .male-mortality-card small {
-        color: white !important;
-    }
-
-    .male-mortality-card .rounded-circle {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .male-mortality-card i {
-        color: white !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-
-    /* Female Mortality Card */
-    .card.female-mortality-card {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        color: white;
-    }
-
-    .female-mortality-card .card-title,
-    .female-mortality-card .text-muted,
-    .female-mortality-card h3,
-    .female-mortality-card span,
-    .female-mortality-card small {
-        color: white !important;
-    }
-
-    .female-mortality-card .rounded-circle {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .female-mortality-card i {
-        color: white !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-
-    /* Egg Percentage Card */
-    .card.egg-percentage-card {
-        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-        color: white;
-    }
-
-    .egg-percentage-card .card-title,
-    .egg-percentage-card .text-muted,
-    .egg-percentage-card h3,
-    .egg-percentage-card span {
-        color: white !important;
-    }
-
-    .egg-percentage-card .rounded-circle {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .egg-percentage-card i {
-        color: white !important;
-    }
-
-    /* Feed Per Bird Card */
-    .card.feed-per-bird-card {
-        background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-        color: white;
-    }
-
-    .feed-per-bird-card .card-title,
-    .feed-per-bird-card .text-muted,
-    .feed-per-bird-card h3,
-    .feed-per-bird-card span,
-    .feed-per-bird-card small {
-        color: white !important;
-    }
-
-    .feed-per-bird-card .rounded-circle {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .feed-per-bird-card i {
-        color: white !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-
-    /* Male Feed Per Bird Card */
-    .card.male-feed-bird-card {
-        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-        color: white;
-    }
-
-    .male-feed-bird-card .card-title,
-    .male-feed-bird-card .text-muted,
-    .male-feed-bird-card h3,
-    .male-feed-bird-card span,
-    .male-feed-bird-card small {
-        color: white !important;
-    }
-
-    .male-feed-bird-card .rounded-circle {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .male-feed-bird-card i {
-        color: white !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-
-    /* Female Feed Per Bird Card */
-    .card.female-feed-bird-card {
-        background: linear-gradient(135deg, #d946ef 0%, #c026d3 100%);
-        color: white;
-    }
-
-    .female-feed-bird-card .card-title,
-    .female-feed-bird-card .text-muted,
-    .female-feed-bird-card h3,
-    .female-feed-bird-card span,
-    .female-feed-bird-card small {
-        color: white !important;
-    }
-
-    .female-feed-bird-card .rounded-circle {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .female-feed-bird-card i {
-        color: white !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
-    }
-
-    /* Actions Card */
-    .actions-card {
-        background: white;
-        border: none !important;
-    }
-
-    .date-display {
-        font-size: 0.95rem;
-        font-weight: 500;
-        background: white !important;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    }
-
-    .btn {
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-
-    .btn-primary {
-        background-color: #2c5282;
-        border-color: #2c5282;
-    }
-
-    .btn-primary:hover {
-        background-color: #2b6cb0;
-        border-color: #2b6cb0;
-        transform: translateY(-1px);
-    }
-
-    .btn-outline-primary {
-        color: #2c5282;
-        border-color: #2c5282;
-    }
-
-    .btn-outline-primary:hover {
-        background-color: #2c5282;
-        color: white;
-        transform: translateY(-1px);
-    }
-
-    .text-danger {
-        color: #fff3f3 !important;
-    }
-
-
-
-    .date-selector .form-control {
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        padding: 0.5rem;
-        font-size: 0.95rem;
-        background-color: white;
-        transition: all 0.2s ease;
-    }
-
-    .date-selector .form-control:focus {
-        border-color: #4299e1;
-        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
-    }
-
-    /* 5 Column Layout for SIAF Stats Cards */
-    @media (min-width: 1400px) {
-        .col-xl-2-5 {
-            flex: 0 0 auto;
-            width: 20%;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--dark-text);
         }
-    }
 
-    @media (min-width: 1200px) and (max-width: 1399px) {
-        .col-xl-2-5 {
-            flex: 0 0 auto;
-            width: 20%;
+        /* Sidebar */
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(to bottom, var(--primary), var(--primary-dark));
+            color: var(--light-text);
+            padding-top: 30px;
+            position: fixed;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
         }
-    }
-
-    @media (min-width: 992px) and (max-width: 1199px) {
-        .col-xl-2-5 {
-            flex: 0 0 auto;
-            width: 25%;
+        
+        .sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
         }
-    }
-
-    @media (min-width: 768px) and (max-width: 991px) {
-        .col-xl-2-5 {
-            flex: 0 0 auto;
-            width: 33.33%;
-        }
-    }
-
-    @media (max-width: 767px) {
-        .col-xl-2-5 {
-            flex: 0 0 auto;
-            width: 50%;
-        }
-    }
-
-    @media (max-width: 576px) {
-        .col-xl-2-5 {
-            flex: 0 0 auto;
-            width: 100%;
-        }
-    }
-    @media (min-width: 1400px) {
-        .col-xl-1-7 {
-            flex: 0 0 auto;
-            width: 14.2857%;
-        }
-    }
-
-    @media (min-width: 1200px) and (max-width: 1399px) {
-        .col-xl-1-7 {
-            flex: 0 0 auto;
-            width: 14.2857%;
-        }
-    }
-
-    @media (min-width: 992px) and (max-width: 1199px) {
-        .col-xl-1-7 {
-            flex: 0 0 auto;
-            width: 20%;
-        }
-    }
-
-    @media (min-width: 768px) and (max-width: 991px) {
-        .col-xl-1-7 {
-            flex: 0 0 auto;
-            width: 25%;
-        }
-    }
-
-    @media (max-width: 767px) {
-        .col-xl-1-7 {
-            flex: 0 0 auto;
-            width: 50%;
-        }
-    }
-
-    @media (max-width: 576px) {
-        .col-xl-1-7 {
-            flex: 0 0 auto;
-            width: 100%;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .container {
-            padding: 1rem;
+        
+        .sidebar h3 {
+            color: var(--light-text);
+            font-weight: 700;
+            font-size: 1.5rem;
             margin: 0;
-            border-radius: 0;
-            max-width: 100%;
         }
-
-        .card-body {
-            padding: 1rem;
-        }
-
-        .date-display {
+        
+        .sidebar-subtitle {
             font-size: 0.85rem;
-            width: 100%;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        
+        .sidebar-nav {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .sidebar-nav li {
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-nav li a {
+            color: rgba(255,255,255,0.85);
+            display: block;
+            padding: 12px 20px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .sidebar-nav li a:hover, .sidebar-nav li a.active {
+            background-color: rgba(255,255,255,0.1);
+            color: var(--light-text);
+            text-decoration: none;
+            transform: translateX(5px);
+        }
+        
+        .sidebar-nav li a i {
+            margin-right: 12px;
+            width: 20px;
             text-align: center;
         }
 
-        .date-selector {
-            width: 100%;
-            margin-bottom: 1rem;
+        /* Main content */
+        .main-content {
+            margin-left: 18%;
+            padding: 30px;
+            background-color: var(--light-bg);
+            min-height: 100vh;
         }
 
-        .d-flex.align-items-center.gap-3 {
-            flex-direction: column;
-            align-items: stretch !important;
-            width: 100%;
+        /* Welcome Banner */
+        .welcome-banner {
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            box-shadow: var(--card-shadow);
+            border-radius: 12px;
+            padding: 25px;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
-
-        .col-md-4 {
-            width: 100%;
+        
+        .welcome-banner .user-info {
+            display: flex;
+            align-items: center;
         }
-
-        .d-flex.justify-content-between.align-items-center.mb-4 {
-            flex-direction: column;
-            gap: 1rem;
-            text-align: center;
-        }
-
-        .card {
-            margin-bottom: 1rem;
-        }
-
-        h2.mb-0 {
-            font-size: 1.1rem;
-            text-align: center;
-            width: 100%;
-        }
-
-        h3.mb-2 {
-            font-size: 1.1rem;
-            text-align: center;
-        }
-
-        .d-flex.align-items-center.mb-3 {
-            flex-direction: column;
-            text-align: center;
-        }
-
-        .rounded-circle.p-3.me-3 {
-            margin: 0 0 1rem 0;
-        }
-
-        .d-flex.align-items-baseline {
+        
+        .welcome-banner .user-avatar {
+            width: 10px;
+            height: 10px;
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
             justify-content: center;
-        }
-
-        .row.g-4 {
-            margin: 0;
-        }
-    }
-
-    /* Additional responsiveness for very small screens */
-    @media (max-width: 375px) {
-        .container {
-            padding: 0.5rem;
-        }
-
-        .card-body {
-            padding: 0.75rem;
-        }
-
-        h3.mb-0 {
+            margin-right: 15px;
             font-size: 1.5rem;
         }
-
-        .date-selector .form-control {
-            font-size: 0.9rem;
-            padding: 0.4rem;
+        
+        /* Cards */
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 25px;
+            transition: transform 0.3s, box-shadow 0.3s;
         }
-    }
-</style>
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding: 15px 20px;
+            font-weight: 600;
+            color: var(--primary);
+            border-radius: 12px 12px 0 0 !important;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* Buttons */
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        
+        /* Stats */
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .stat-icon {
+            font-size: 1.8rem;
+            color: var(--primary-light);
+            margin-bottom: 10px;
+        }
 
-<!-- Font Awesome -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-
-<script>
-    function updateDashboard(date) {
-        // Update display date
-        const displayDate = new Date(date);
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
-        document.getElementById('display-date').textContent = displayDate.toLocaleDateString('en-US', options);
-
-        // Fetch updated data from server
-        fetch(`/dashboard-data/?date=${date}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update SIAF cards and bird count cards
-                    const cardElements = document.querySelectorAll('.card');
-                    cardElements.forEach(card => {
-                        const valueElement = card.querySelector('h3');
-                        const cardType = card.classList[1]; // Get the second class which identifies the card type
-
-                        if (valueElement) {
-                            let value = '0';
-                            if (cardType === 'siaf-tray-card') value = data.data.siaf_total_tray_eggs || '0';
-                            else if (cardType === 'siaf-eggs-card') value = data.data.siaf_total_eggs || '0';
-                            else if (cardType === 'egg-percentage-card') value = data.data.egg_percentage || '0';
-                            else if (cardType === 'male-birds-card') value = data.data.male_current_birds || '0';
-                            else if (cardType === 'female-birds-card') value = data.data.female_current_birds || '0';
-                            else if (cardType === 'total-birds-card') value = data.data.total_current_birds || '0';
-                            else if (cardType === 'male-mortality-card') value = data.data.male_today_mortality || '0';
-                            else if (cardType === 'female-mortality-card') value = data.data.female_today_mortality || '0';
-                            else if (cardType === 'total-mortality-card') value = data.data.total_mortality || '0';
-                            else if (cardType === 'feed-per-bird-card') value = data.data.feed_per_gram_per_bird || '0';
-                            else if (cardType === 'male-feed-bird-card') value = data.data.male_feed_per_bird || '0';
-                            else if (cardType === 'female-feed-bird-card') value = data.data.female_feed_per_bird || '0';
-
-                            valueElement.textContent = value;
-                        }
-                    });
-
-                    // Update record existence warnings
-                    const warnings = document.querySelectorAll('small.text-danger');
-                    warnings.forEach(warning => {
-                        warning.style.display = data.data.siaf_record_exists ? 'none' : 'block';
-                    });
-                } else {
-                    console.error('Error:', data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching dashboard data:', error);
-            });
-    }
-
-    function updateCardValue(id, value, unit) {
-        const elements = document.getElementsByClassName(id);
-        for (let element of elements) {
-            const valueDisplay = element.querySelector('h3');
-            if (valueDisplay) {
-                valueDisplay.textContent = value || '0';
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 230px;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            
+            .menu-toggle {
+                display: block;
+                position: fixed;
+                top: 15px;
+                left: 15px;
+                z-index: 1100;
+                background: var(--primary);
+                color: white;
+                border: none;
+                border-radius: 5px;
+                width: 40px;
+                height: 40px;
             }
         }
-    }
-
-    function updateRecordStatus(recordType, exists) {
-        const warnings = document.querySelectorAll(`.${recordType}-warning`);
-        warnings.forEach(warning => {
-            warning.style.display = exists ? 'none' : 'block';
-        });
-    }
-
-    // Initialize dashboard with current date on page load
-    document.addEventListener('DOMContentLoaded', function () {
-        const currentDate = document.getElementById('dashboard-date').value;
-        if (currentDate) {
-            updateDashboard(currentDate);
+        
+        @media (min-width: 993px) {
+            .menu-toggle {
+                display: none;
+            }
         }
-    });
-</script>
-{% endblock %}
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <button class="menu-toggle d-lg-none">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Left Sidebar -->
+            <div class="col-lg-2 sidebar">
+                <div class="sidebar-header">
+                    <h3>NV Poultry Farm (SIAF)</h3>
+                </div>
+                <ul class="sidebar-nav">
+                    <li><a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active"{% endif %}><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li><a href="{% url 'females' %}" {% if request.resolver_match.url_name == 'females' %}class="active"{% endif %}><i class="fas fa-egg"></i> Females</a></li>
+                    <li><a href="{% url 'males' %}" {% if request.resolver_match.url_name == 'males' %}class="active"{% endif %}><i class="fas fa-feather"></i> Males</a></li>
+                    <li><a href="{% url 'report' %}" {% if request.resolver_match.url_name == 'report' %}class="active"{% endif %}><i class="fas fa-chart-line"></i> Reports</a></li>
+                    <li><a href="{% url 'feed' %}" {% if request.resolver_match.url_name == 'feed' %}class="active"{% endif %}><i class="fas fa-seedling"></i> Feed</a></li>
+                    <li><a href="{% url 'eggout' %}" {% if request.resolver_match.url_name == 'eggout' %}class="active"{% endif %}><i class="fas fa-egg"></i> Egg Out</a></li>
+                    {% for group in user_groups %}
+                    {% if group.name == 'admin'%}
+                    <li><a href="{% url 'SIAF' %}" {% if request.resolver_match.url_name == 'SIAF' %}class="active"{% endif %}><i class="fas fa-xmark"></i> Data Entry</a></li>
+                    <li><a href="{% url 'add_user' %}" {% if request.resolver_match.url_name == 'add_user' %}class="active"{% endif %}><i class="fas fa-user-plus"></i> Add User</a></li>
+                    {% endif %}
+                    {% endfor %}
+                    <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-lg-10 main-content">
+                <!-- Welcome Banner -->
+                <div class="welcome-banner">
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            Welcome, {{ request.user.username }} 👋
+                        </div>
+                    </div>
+                    <div class="d-none d-md-block">
+                        <span class="badge bg-light text-dark p-2">
+                            <i class="fas fa-calendar me-1"></i> 
+                            <span id="current-date"></span>
+                        </span>
+                    </div>
+                </div>
+
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Toggle sidebar on mobile
+        document.querySelector('.menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+        
+        // Update current date dynamically
+        function updateCurrentDate() {
+            const date = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date').textContent = date.toLocaleDateString('en-US', options);
+        }
+        
+        // Update date immediately and then every minute
+        updateCurrentDate();
+        setInterval(updateCurrentDate, 60000);
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

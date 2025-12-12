@@ -20,24 +20,24 @@
         </div>
     </div>
 
-    <!-- SIAF Stats Cards -->
+    <!-- SIAF Stats Cards - 5 Cards Layout -->
     <div class="row g-4">
-        <!-- SIAF Tray Eggs Card -->
-        <div class="col-md-6">
-            <div class="card siaf-tray-card h-100 border-0 shadow-sm">
+        <!-- Egg Percentage Card -->
+        <div class="col-xl-2-5">
+            <div class="card egg-percentage-card h-100 border-0 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <div class="rounded-circle p-3 me-3">
-                            <i class="fas fa-box fa-2x"></i>
+                            <i class="fas fa-chart-pie fa-2x"></i>
                         </div>
                         <div>
-                            <h6 class="card-title mb-0">SIAF Tray Eggs</h6>
-                            <small class="text-muted">Total trays collected</small>
+                            <h6 class="card-title mb-0">Egg Percentage</h6>
+                            <small class="text-muted">Eggs per bird</small>
                         </div>
                     </div>
                     <div class="d-flex align-items-baseline">
-                        <h3 class="mb-0 me-2" style="font-weight: 700;">{{ siaf_total_tray_eggs }}</h3>
-                        <span class="text-muted">Trays</span>
+                        <h3 class="mb-0 me-2" style="font-weight: 700;">{{ egg_percentage }}</h3>
+                        <span class="text-muted">%</span>
                     </div>
                     {% if not siaf_record_exists %}
                     <small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>No record for today</small>
@@ -47,7 +47,7 @@
         </div>
 
         <!-- SIAF Total Eggs Card -->
-        <div class="col-md-6">
+        <div class="col-xl-2-5">
             <div class="card siaf-eggs-card h-100 border-0 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
@@ -69,32 +69,76 @@
                 </div>
             </div>
         </div>
+
+        <!-- Feed Per Bird Card -->
+        <div class="col-xl-2-5">
+            <div class="card feed-per-bird-card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle p-3 me-3">
+                            <i class="fas fa-balance-scale fa-2x"></i>
+                        </div>
+                        <div>
+                            <h6 class="card-title mb-0">Feed Per Bird</h6>
+                            <small class="text-muted">Today's intake</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-baseline">
+                        <h3 class="mb-0 me-2" style="font-weight: 700;">{{ feed_per_gram_per_bird }}</h3>
+                        <span class="text-muted">gm</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Male Feed Per Bird Card -->
+        <div class="col-xl-2-5">
+            <div class="card male-feed-bird-card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle p-3 me-3">
+                            <i class="fas fa-drumstick-bite fa-2x"></i>
+                        </div>
+                        <div>
+                            <h6 class="card-title mb-0">Male Feed</h6>
+                            <small class="text-muted">Per male bird</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-baseline">
+                        <h3 class="mb-0 me-2" style="font-weight: 700;">{{ male_feed_per_bird }}</h3>
+                        <span class="text-muted">gm</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Female Feed Per Bird Card -->
+        <div class="col-xl-2-5">
+            <div class="card female-feed-bird-card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle p-3 me-3">
+                            <i class="fas fa-egg fa-2x"></i>
+                        </div>
+                        <div>
+                            <h6 class="card-title mb-0">Female Feed</h6>
+                            <small class="text-muted">Per female bird</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-baseline">
+                        <h3 class="mb-0 me-2" style="font-weight: 700;">{{ female_feed_per_bird }}</h3>
+                        <span class="text-muted">gm</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Birds Count Section -->
     <div class="row g-4 mt-2">
         <h3 class="mb-3 mt-2" style="color: #2c5282; font-weight: 600;">Bird Count Summary</h3>
         
-        <!-- Feed Per Gram Per Bird Card (1st) -->
-        <div class="col-xl-1-7">
-            <div class="card feed-per-bird-card h-100 border-0 shadow-sm">
-                <div class="card-body p-2">
-                    <div class="d-flex flex-column align-items-center text-center mb-2">
-                        <div class="rounded-circle p-2 mb-2" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-balance-scale fa-sm"></i>
-                        </div>
-                        <h6 class="card-title mb-0" style="font-size: 0.85rem;">Feed Per Bird</h6>
-                        <small class="text-muted" style="font-size: 0.65rem;">Today's intake</small>
-                    </div>
-                    <div class="text-center">
-                        <h3 class="mb-0" style="font-weight: 700; font-size: 1.5rem;" id="feed-per-bird-count">{{ feed_per_gram_per_bird }}</h3>
-                        <small class="text-muted" style="font-size: 0.65rem;">gm</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Total Birds Card (2nd) -->
+        <!-- Total Birds Card -->
         <div class="col-xl-1-7">
             <div class="card total-birds-card h-100 border-0 shadow-sm">
                 <div class="card-body p-2">
@@ -113,26 +157,7 @@
             </div>
         </div>
 
-        <!-- Total Mortality Card (3rd) -->
-        <div class="col-xl-1-7">
-            <div class="card total-mortality-card h-100 border-0 shadow-sm">
-                <div class="card-body p-2">
-                    <div class="d-flex flex-column align-items-center text-center mb-2">
-                        <div class="rounded-circle p-2 mb-2" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-skull fa-sm"></i>
-                        </div>
-                        <h6 class="card-title mb-0" style="font-size: 0.85rem;">Total Mortality</h6>
-                        <small class="text-muted" style="font-size: 0.65rem;">All deaths</small>
-                    </div>
-                    <div class="text-center">
-                        <h3 class="mb-0" style="font-weight: 700; font-size: 1.5rem;" id="total-mortality-count">{{ total_mortality }}</h3>
-                        <small class="text-muted" style="font-size: 0.65rem;">Birds</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Male Birds Card (4th) -->
+        <!-- Male Birds Card (3rd) -->
         <div class="col-xl-1-7">
             <div class="card male-birds-card h-100 border-0 shadow-sm">
                 <div class="card-body p-2">
@@ -170,7 +195,7 @@
             </div>
         </div>
 
-        <!-- Male Mortality Card (6th) -->
+        <!-- Male Mortality Card (5th) -->
         <div class="col-xl-1-7">
             <div class="card male-mortality-card h-100 border-0 shadow-sm">
                 <div class="card-body p-2">
@@ -179,17 +204,17 @@
                             <i class="fas fa-heart-broken fa-sm"></i>
                         </div>
                         <h6 class="card-title mb-0" style="font-size: 0.85rem;">Male Mortality</h6>
-                        <small class="text-muted" style="font-size: 0.65rem;">Total deaths</small>
+                        <small class="text-muted" style="font-size: 0.65rem;">Today's deaths</small>
                     </div>
                     <div class="text-center">
-                        <h3 class="mb-0" style="font-weight: 700; font-size: 1.5rem;" id="male-mortality-count">{{ male_total_mortality }}</h3>
+                        <h3 class="mb-0" style="font-weight: 700; font-size: 1.5rem;" id="male-mortality-count">{{ male_today_mortality }}</h3>
                         <small class="text-muted" style="font-size: 0.65rem;">Birds</small>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Female Mortality Card (7th) -->
+        <!-- Female Mortality Card (6th) -->
         <div class="col-xl-1-7">
             <div class="card female-mortality-card h-100 border-0 shadow-sm">
                 <div class="card-body p-2">
@@ -198,10 +223,10 @@
                             <i class="fas fa-heart-broken fa-sm"></i>
                         </div>
                         <h6 class="card-title mb-0" style="font-size: 0.85rem;">Female Mortality</h6>
-                        <small class="text-muted" style="font-size: 0.65rem;">Total deaths</small>
+                        <small class="text-muted" style="font-size: 0.65rem;">Today's deaths</small>
                     </div>
                     <div class="text-center">
-                        <h3 class="mb-0" style="font-weight: 700; font-size: 1.5rem;" id="female-mortality-count">{{ female_total_mortality }}</h3>
+                        <h3 class="mb-0" style="font-weight: 700; font-size: 1.5rem;" id="female-mortality-count">{{ female_today_mortality }}</h3>
                         <small class="text-muted" style="font-size: 0.65rem;">Birds</small>
                     </div>
                 </div>
@@ -436,28 +461,25 @@
         visibility: visible !important;
     }
 
-    /* Total Mortality Card */
-    .card.total-mortality-card {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    /* Egg Percentage Card */
+    .card.egg-percentage-card {
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
         color: white;
     }
 
-    .total-mortality-card .card-title,
-    .total-mortality-card .text-muted,
-    .total-mortality-card h3,
-    .total-mortality-card span,
-    .total-mortality-card small {
+    .egg-percentage-card .card-title,
+    .egg-percentage-card .text-muted,
+    .egg-percentage-card h3,
+    .egg-percentage-card span {
         color: white !important;
     }
 
-    .total-mortality-card .rounded-circle {
+    .egg-percentage-card .rounded-circle {
         background: rgba(255, 255, 255, 0.2) !important;
     }
 
-    .total-mortality-card i {
+    .egg-percentage-card i {
         color: white !important;
-        display: block !important;
-        visibility: visible !important;
     }
 
     /* Feed Per Bird Card */
@@ -479,6 +501,54 @@
     }
 
     .feed-per-bird-card i {
+        color: white !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    /* Male Feed Per Bird Card */
+    .card.male-feed-bird-card {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        color: white;
+    }
+
+    .male-feed-bird-card .card-title,
+    .male-feed-bird-card .text-muted,
+    .male-feed-bird-card h3,
+    .male-feed-bird-card span,
+    .male-feed-bird-card small {
+        color: white !important;
+    }
+
+    .male-feed-bird-card .rounded-circle {
+        background: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .male-feed-bird-card i {
+        color: white !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    /* Female Feed Per Bird Card */
+    .card.female-feed-bird-card {
+        background: linear-gradient(135deg, #d946ef 0%, #c026d3 100%);
+        color: white;
+    }
+
+    .female-feed-bird-card .card-title,
+    .female-feed-bird-card .text-muted,
+    .female-feed-bird-card h3,
+    .female-feed-bird-card span,
+    .female-feed-bird-card small {
+        color: white !important;
+    }
+
+    .female-feed-bird-card .rounded-circle {
+        background: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .female-feed-bird-card i {
         color: white !important;
         display: block !important;
         visibility: visible !important;
@@ -551,7 +621,48 @@
         box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
     }
 
-    /* 7 Column Layout for Birds Summary Cards */
+    /* 5 Column Layout for SIAF Stats Cards */
+    @media (min-width: 1400px) {
+        .col-xl-2-5 {
+            flex: 0 0 auto;
+            width: 20%;
+        }
+    }
+
+    @media (min-width: 1200px) and (max-width: 1399px) {
+        .col-xl-2-5 {
+            flex: 0 0 auto;
+            width: 20%;
+        }
+    }
+
+    @media (min-width: 992px) and (max-width: 1199px) {
+        .col-xl-2-5 {
+            flex: 0 0 auto;
+            width: 25%;
+        }
+    }
+
+    @media (min-width: 768px) and (max-width: 991px) {
+        .col-xl-2-5 {
+            flex: 0 0 auto;
+            width: 33.33%;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .col-xl-2-5 {
+            flex: 0 0 auto;
+            width: 50%;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .col-xl-2-5 {
+            flex: 0 0 auto;
+            width: 100%;
+        }
+    }
     @media (min-width: 1400px) {
         .col-xl-1-7 {
             flex: 0 0 auto;
@@ -712,13 +823,16 @@
                             let value = '0';
                             if (cardType === 'siaf-tray-card') value = data.data.siaf_total_tray_eggs || '0';
                             else if (cardType === 'siaf-eggs-card') value = data.data.siaf_total_eggs || '0';
+                            else if (cardType === 'egg-percentage-card') value = data.data.egg_percentage || '0';
                             else if (cardType === 'male-birds-card') value = data.data.male_current_birds || '0';
                             else if (cardType === 'female-birds-card') value = data.data.female_current_birds || '0';
                             else if (cardType === 'total-birds-card') value = data.data.total_current_birds || '0';
-                            else if (cardType === 'male-mortality-card') value = data.data.male_total_mortality || '0';
-                            else if (cardType === 'female-mortality-card') value = data.data.female_total_mortality || '0';
+                            else if (cardType === 'male-mortality-card') value = data.data.male_today_mortality || '0';
+                            else if (cardType === 'female-mortality-card') value = data.data.female_today_mortality || '0';
                             else if (cardType === 'total-mortality-card') value = data.data.total_mortality || '0';
                             else if (cardType === 'feed-per-bird-card') value = data.data.feed_per_gram_per_bird || '0';
+                            else if (cardType === 'male-feed-bird-card') value = data.data.male_feed_per_bird || '0';
+                            else if (cardType === 'female-feed-bird-card') value = data.data.female_feed_per_bird || '0';
 
                             valueElement.textContent = value;
                         }
