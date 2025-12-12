@@ -6,7 +6,7 @@ from django.views.decorators.cache import cache_control
 from django.http import JsonResponse
 from django.utils import timezone
 from django.db import models
-from .models import DailyRecordSIAF, FemaleBirdsMortality,FemaleBirdsStock, FeedStock, MaleBirdsStock, MaleBirdsMortality
+from .models import DailyRecordSIAF, FemaleBirdsMortality,FemaleBirdsStock, FeedStock, MaleBirdsStock, MaleBirdsMortality, EggOut
 from datetime import datetime, timedelta
 import pandas as pd
 from django.contrib.auth.models import User, Group
@@ -77,6 +77,8 @@ def dashboard(request):
     total_current_birds = 0
     male_total_mortality = 0
     female_total_mortality = 0
+    male_today_mortality = 0
+    female_today_mortality = 0
     total_mortality = 0
     
     active_male_batches = MaleBirdsStock.objects.filter(status='active')
@@ -86,19 +88,51 @@ def dashboard(request):
         male_current_birds += batch.get_current_birds()
         male_total_mortality += batch.get_current_mortality()
     
+    # Get today's male mortality
+    male_today_mortality = MaleBirdsMortality.objects.filter(date=selected_date).aggregate(models.Sum('mortality_count'))['mortality_count__sum'] or 0
+    
     for batch in active_female_batches:
         female_current_birds += batch.get_current_birds()
         female_total_mortality += batch.get_current_mortality()
+    
+    # Get today's female mortality
+    female_today_mortality = FemaleBirdsMortality.objects.filter(date=selected_date).aggregate(models.Sum('mortality_count'))['mortality_count__sum'] or 0
     
     total_current_birds = male_current_birds + female_current_birds
     total_mortality = male_total_mortality + female_total_mortality
     
     # Calculate feed per gram per bird
     feed_per_gram_per_bird = 0
+    male_feed_per_bird = 0
+    female_feed_per_bird = 0
+    
     if siaf_record and total_current_birds > 0:
-        total_feed_kg = (siaf_record.feed_morning or 0) + (siaf_record.feed_evening or 0)
+        # Use new fields if available, otherwise use legacy fields
+        male_feed = (siaf_record.feed_male_morning or 0) + (siaf_record.feed_male_evening or 0)
+        female_feed = (siaf_record.feed_female_morning or 0) + (siaf_record.feed_female_evening or 0)
+        legacy_feed = (siaf_record.feed_morning or 0) + (siaf_record.feed_evening or 0)
+        total_feed_kg = (male_feed + female_feed) if (male_feed > 0 or female_feed > 0) else legacy_feed
         total_feed_grams = total_feed_kg * 1000
         feed_per_gram_per_bird = round(total_feed_grams / total_current_birds, 2)
+        
+        # Calculate male feed per bird
+        if male_current_birds > 0:
+            male_feed_grams = male_feed * 1000
+            male_feed_per_bird = round(male_feed_grams / male_current_birds, 2)
+        
+        # Calculate female feed per bird
+        if female_current_birds > 0:
+            female_feed_grams = female_feed * 1000
+            female_feed_per_bird = round(female_feed_grams / female_current_birds, 2)
+    
+    # Calculate egg percentage (total eggs / female birds * 100)
+    egg_percentage = 0
+    if siaf_record:
+        total_eggs = (siaf_record.total_egg_morning or 0) + (siaf_record.total_egg_evening or 0)
+        if female_current_birds > 0:
+            egg_percentage = round((total_eggs / female_current_birds) * 100, 2)
+        else:
+            egg_percentage = 0
     
     context = {
         'user_groups': user_groups,
@@ -116,8 +150,13 @@ def dashboard(request):
         'total_current_birds': total_current_birds,
         'male_total_mortality': male_total_mortality,
         'female_total_mortality': female_total_mortality,
+        'male_today_mortality': male_today_mortality,
+        'female_today_mortality': female_today_mortality,
         'total_mortality': total_mortality,
-        'feed_per_gram_per_bird': feed_per_gram_per_bird
+        'feed_per_gram_per_bird': feed_per_gram_per_bird,
+        'male_feed_per_bird': male_feed_per_bird,
+        'female_feed_per_bird': female_feed_per_bird,
+        'egg_percentage': egg_percentage
     }
     
     return render(request, "dashboard.html", context)
@@ -141,7 +180,7 @@ def feed(request):
 def males(request):
     user_groups = request.user.groups.all()
     u = request.user
-    return render(request, "Males.html", {'user_groups': user_groups, 'u': u})
+    return render(request, "males.html", {'user_groups': user_groups, 'u': u})
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 @login_required()
@@ -171,15 +210,49 @@ def report_data(request):
             # Convert records to list of dictionaries
             data = []
             for record in records:
+                # Calculate feed per gram per bird for this record
+                feed_per_gram_per_bird = 0
+                total_current_birds = 0
+                
+                # Get active male and female batches for the record date
+                active_male_batches = MaleBirdsStock.objects.filter(status='active')
+                active_female_batches = FemaleBirdsStock.objects.filter(status='active')
+                
+                for batch in active_male_batches:
+                    total_current_birds += batch.get_current_birds()
+                
+                for batch in active_female_batches:
+                    total_current_birds += batch.get_current_birds()
+                
+                # Calculate total feed (new fields take priority, fall back to legacy)
+                male_feed = (record.feed_male_morning or 0) + (record.feed_male_evening or 0)
+                female_feed = (record.feed_female_morning or 0) + (record.feed_female_evening or 0)
+                legacy_feed = (record.feed_morning or 0) + (record.feed_evening or 0)
+                
+                if male_feed > 0 or female_feed > 0:
+                    total_feed_kg = male_feed + female_feed
+                else:
+                    total_feed_kg = legacy_feed
+                
+                if total_current_birds > 0:
+                    total_feed_grams = total_feed_kg * 1000
+                    feed_per_gram_per_bird = round(total_feed_grams / total_current_birds, 2)
+                
                 data.append({
                     'date': record.date,
+                    'feed_male_morning': record.feed_male_morning,
+                    'feed_male_evening': record.feed_male_evening,
+                    'feed_female_morning': record.feed_female_morning,
+                    'feed_female_evening': record.feed_female_evening,
                     'feed_morning': record.feed_morning,
                     'feed_evening': record.feed_evening,
+                    'feed_total': total_feed_kg,
                     'water_intake': record.water_intake,
                     'tray_egg_morning': record.tray_egg_morning,
                     'tray_egg_evening': record.tray_egg_evening,
                     'total_egg_morning': record.total_egg_morning,
                     'total_egg_evening': record.total_egg_evening,
+                    'feed_per_gram_per_bird': feed_per_gram_per_bird,
                 })
 
             return JsonResponse({
@@ -213,7 +286,20 @@ def SIAF(request):
             date_str = request.POST.get('date')
             date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else timezone.now().date()
             record, created = DailyRecordSIAF.objects.get_or_create(date=date)
-            # Feed Data
+            
+            # Feed Data - Male Birds
+            record.feed_male_morning = float(request.POST.get('feed_male_morning')) if request.POST.get('feed_male_morning') else None
+            record.feed_male_morning_bundles = float(request.POST.get('feed_male_morning_bundles')) if request.POST.get('feed_male_morning_bundles') else None
+            record.feed_male_evening = float(request.POST.get('feed_male_evening')) if request.POST.get('feed_male_evening') else None
+            record.feed_male_evening_bundles = float(request.POST.get('feed_male_evening_bundles')) if request.POST.get('feed_male_evening_bundles') else None
+            
+            # Feed Data - Female Birds
+            record.feed_female_morning = float(request.POST.get('feed_female_morning')) if request.POST.get('feed_female_morning') else None
+            record.feed_female_morning_bundles = float(request.POST.get('feed_female_morning_bundles')) if request.POST.get('feed_female_morning_bundles') else None
+            record.feed_female_evening = float(request.POST.get('feed_female_evening')) if request.POST.get('feed_female_evening') else None
+            record.feed_female_evening_bundles = float(request.POST.get('feed_female_evening_bundles')) if request.POST.get('feed_female_evening_bundles') else None
+            
+            # Legacy feed data (for backward compatibility)
             record.feed_morning = int(request.POST.get('feed_morning')) if request.POST.get('feed_morning') else None
             record.feed_morning_bundles = float(request.POST.get('feed_morning_bundles')) if request.POST.get('feed_morning_bundles') else None
             record.feed_evening = int(request.POST.get('feed_evening')) if request.POST.get('feed_evening') else None
@@ -221,14 +307,14 @@ def SIAF(request):
             record.water_intake = float(request.POST.get('water_intake')) if request.POST.get('water_intake') else None
             
             # Egg Collection Data - Morning
-            record.tray_egg_morning = int(request.POST.get('tray_egg_morning')) if request.POST.get('tray_egg_morning') else None
-            record.total_egg_morning = int(request.POST.get('total_egg_morning')) if request.POST.get('total_egg_morning') else None
+            record.tray_egg_morning = float(request.POST.get('tray_egg_morning')) if request.POST.get('tray_egg_morning') else None
+            record.total_egg_morning = float(request.POST.get('total_egg_morning')) if request.POST.get('total_egg_morning') else None
             record.damaged_egg_morning = int(request.POST.get('damaged_egg_morning')) if request.POST.get('damaged_egg_morning') else None
             record.double_egg_morning = int(request.POST.get('double_egg_morning')) if request.POST.get('double_egg_morning') else None
             
             # Egg Collection Data - Evening
-            record.tray_egg_evening = int(request.POST.get('tray_egg_evening')) if request.POST.get('tray_egg_evening') else None
-            record.total_egg_evening = int(request.POST.get('total_egg_evening')) if request.POST.get('total_egg_evening') else None
+            record.tray_egg_evening = float(request.POST.get('tray_egg_evening')) if request.POST.get('tray_egg_evening') else None
+            record.total_egg_evening = float(request.POST.get('total_egg_evening')) if request.POST.get('total_egg_evening') else None
             record.damaged_egg_evening = int(request.POST.get('damaged_egg_evening')) if request.POST.get('damaged_egg_evening') else None
             record.double_egg_evening = int(request.POST.get('double_egg_evening')) if request.POST.get('double_egg_evening') else None
             
@@ -290,6 +376,8 @@ def dashboard_data(request):
             female_current_birds = 0
             male_total_mortality = 0
             female_total_mortality = 0
+            male_today_mortality = 0
+            female_today_mortality = 0
             
             active_male_batches = MaleBirdsStock.objects.filter(status='active')
             active_female_batches = FemaleBirdsStock.objects.filter(status='active')
@@ -298,19 +386,50 @@ def dashboard_data(request):
                 male_current_birds += batch.get_current_birds()
                 male_total_mortality += batch.get_current_mortality()
             
+            # Get today's male mortality
+            male_today_mortality = MaleBirdsMortality.objects.filter(date=date).aggregate(models.Sum('mortality_count'))['mortality_count__sum'] or 0
+            
             for batch in active_female_batches:
                 female_current_birds += batch.get_current_birds()
                 female_total_mortality += batch.get_current_mortality()
+            
+            # Get today's female mortality
+            female_today_mortality = FemaleBirdsMortality.objects.filter(date=date).aggregate(models.Sum('mortality_count'))['mortality_count__sum'] or 0
             
             total_current_birds = male_current_birds + female_current_birds
             total_mortality = male_total_mortality + female_total_mortality
 
             # Calculate feed per gram per bird
             feed_per_gram_per_bird = 0
+            male_feed_per_bird = 0
+            female_feed_per_bird = 0
             if siaf_record and total_current_birds > 0:
-                total_feed_kg = (siaf_record.feed_morning or 0) + (siaf_record.feed_evening or 0)
+                # Use new fields if available, otherwise use legacy fields
+                male_feed = (siaf_record.feed_male_morning or 0) + (siaf_record.feed_male_evening or 0)
+                female_feed = (siaf_record.feed_female_morning or 0) + (siaf_record.feed_female_evening or 0)
+                legacy_feed = (siaf_record.feed_morning or 0) + (siaf_record.feed_evening or 0)
+                total_feed_kg = (male_feed + female_feed) if (male_feed > 0 or female_feed > 0) else legacy_feed
                 total_feed_grams = total_feed_kg * 1000
                 feed_per_gram_per_bird = round(total_feed_grams / total_current_birds, 2)
+                
+                # Calculate male feed per bird
+                if male_current_birds > 0:
+                    male_feed_grams = male_feed * 1000
+                    male_feed_per_bird = round(male_feed_grams / male_current_birds, 2)
+                
+                # Calculate female feed per bird
+                if female_current_birds > 0:
+                    female_feed_grams = female_feed * 1000
+                    female_feed_per_bird = round(female_feed_grams / female_current_birds, 2)
+
+            # Calculate egg percentage (total eggs / female birds * 100)
+            egg_percentage = 0
+            if siaf_record:
+                total_eggs = (siaf_record.total_egg_morning or 0) + (siaf_record.total_egg_evening or 0)
+                if female_current_birds > 0:
+                    egg_percentage = round((total_eggs / female_current_birds) * 100, 2)
+                else:
+                    egg_percentage = 0
 
             return JsonResponse({
                 'success': True,
@@ -323,8 +442,13 @@ def dashboard_data(request):
                     'total_current_birds': total_current_birds,
                     'male_total_mortality': male_total_mortality,
                     'female_total_mortality': female_total_mortality,
+                    'male_today_mortality': male_today_mortality,
+                    'female_today_mortality': female_today_mortality,
                     'total_mortality': total_mortality,
-                    'feed_per_gram_per_bird': feed_per_gram_per_bird
+                    'feed_per_gram_per_bird': feed_per_gram_per_bird,
+                    'male_feed_per_bird': male_feed_per_bird,
+                    'female_feed_per_bird': female_feed_per_bird,
+                    'egg_percentage': egg_percentage
                 }
             })
         except ValueError:
@@ -353,7 +477,8 @@ def download_excel(request):
             header_fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
 
             # Column headers - Enhanced with temperature, feed per bird, and mortality details
-            headers = ['Date', 'Feed Morning', 'Feed Evening', 'Water Intake', 
+            headers = ['Date', 'Feed Male Morning', 'Feed Male Evening', 'Feed Female Morning', 'Feed Female Evening', 
+                      'Total Feed', 'Water Intake', 
                       'Tray Egg Morning', 'Total Egg Morning', 'Damaged Egg Morning', 'Double Egg Morning',
                       'Tray Egg Evening', 'Total Egg Evening', 'Damaged Egg Evening', 'Double Egg Evening',
                       'AI Status', 'AI Hours', 'Fogger Status', 'Fogger Hours',
@@ -380,32 +505,42 @@ def download_excel(request):
             # Add data
             for row, record in enumerate(siaf_records, 2):
                 siaf_sheet.cell(row=row, column=1, value=record.date.strftime('%Y-%m-%d'))
-                siaf_sheet.cell(row=row, column=2, value=record.feed_morning)
-                siaf_sheet.cell(row=row, column=3, value=record.feed_evening)
-                siaf_sheet.cell(row=row, column=4, value=record.water_intake)
-                siaf_sheet.cell(row=row, column=5, value=record.tray_egg_morning)
-                siaf_sheet.cell(row=row, column=6, value=record.total_egg_morning)
-                siaf_sheet.cell(row=row, column=7, value=record.damaged_egg_morning)
-                siaf_sheet.cell(row=row, column=8, value=record.double_egg_morning)
-                siaf_sheet.cell(row=row, column=9, value=record.tray_egg_evening)
-                siaf_sheet.cell(row=row, column=10, value=record.total_egg_evening)
-                siaf_sheet.cell(row=row, column=11, value=record.damaged_egg_evening)
-                siaf_sheet.cell(row=row, column=12, value=record.double_egg_evening)
-                siaf_sheet.cell(row=row, column=13, value=record.artificial_insemination)
-                siaf_sheet.cell(row=row, column=14, value=record.ai_hours)
-                siaf_sheet.cell(row=row, column=15, value=record.fogger_used)
-                siaf_sheet.cell(row=row, column=16, value=record.fogger_hours)
-                siaf_sheet.cell(row=row, column=17, value=record.fan_used)
-                siaf_sheet.cell(row=row, column=18, value=record.fan_hours)
-                siaf_sheet.cell(row=row, column=19, value=record.light_used)
-                siaf_sheet.cell(row=row, column=20, value=record.light_hours)
+                siaf_sheet.cell(row=row, column=2, value=record.feed_male_morning)
+                siaf_sheet.cell(row=row, column=3, value=record.feed_male_evening)
+                siaf_sheet.cell(row=row, column=4, value=record.feed_female_morning)
+                siaf_sheet.cell(row=row, column=5, value=record.feed_female_evening)
+                
+                # Calculate total feed (new fields or legacy)
+                male_feed = (record.feed_male_morning or 0) + (record.feed_male_evening or 0)
+                female_feed = (record.feed_female_morning or 0) + (record.feed_female_evening or 0)
+                legacy_feed = (record.feed_morning or 0) + (record.feed_evening or 0)
+                total_feed = (male_feed + female_feed) if (male_feed > 0 or female_feed > 0) else legacy_feed
+                
+                siaf_sheet.cell(row=row, column=6, value=total_feed)
+                siaf_sheet.cell(row=row, column=7, value=record.water_intake)
+                siaf_sheet.cell(row=row, column=8, value=record.tray_egg_morning)
+                siaf_sheet.cell(row=row, column=9, value=record.total_egg_morning)
+                siaf_sheet.cell(row=row, column=10, value=record.damaged_egg_morning)
+                siaf_sheet.cell(row=row, column=11, value=record.double_egg_morning)
+                siaf_sheet.cell(row=row, column=12, value=record.tray_egg_evening)
+                siaf_sheet.cell(row=row, column=13, value=record.total_egg_evening)
+                siaf_sheet.cell(row=row, column=14, value=record.damaged_egg_evening)
+                siaf_sheet.cell(row=row, column=15, value=record.double_egg_evening)
+                siaf_sheet.cell(row=row, column=16, value=record.artificial_insemination)
+                siaf_sheet.cell(row=row, column=17, value=record.ai_hours)
+                siaf_sheet.cell(row=row, column=18, value=record.fogger_used)
+                siaf_sheet.cell(row=row, column=19, value=record.fogger_hours)
+                siaf_sheet.cell(row=row, column=20, value=record.fan_used)
+                siaf_sheet.cell(row=row, column=21, value=record.fan_hours)
+                siaf_sheet.cell(row=row, column=22, value=record.light_used)
+                siaf_sheet.cell(row=row, column=23, value=record.light_hours)
                 # Temperature readings
-                siaf_sheet.cell(row=row, column=21, value=record.temperature_1)
-                siaf_sheet.cell(row=row, column=22, value=record.temperature_2)
-                siaf_sheet.cell(row=row, column=23, value=record.temperature_3)
-                siaf_sheet.cell(row=row, column=24, value=record.temperature_4)
-                siaf_sheet.cell(row=row, column=25, value=record.temperature_5)
-                siaf_sheet.cell(row=row, column=26, value=record.temperature_6)
+                siaf_sheet.cell(row=row, column=24, value=record.temperature_1)
+                siaf_sheet.cell(row=row, column=25, value=record.temperature_2)
+                siaf_sheet.cell(row=row, column=26, value=record.temperature_3)
+                siaf_sheet.cell(row=row, column=27, value=record.temperature_4)
+                siaf_sheet.cell(row=row, column=28, value=record.temperature_5)
+                siaf_sheet.cell(row=row, column=29, value=record.temperature_6)
                 
                 # Calculate feed per bird
                 feed_per_gram_per_bird = 0
@@ -429,16 +564,16 @@ def download_excel(request):
                 total_mortality = male_mortality_total + female_mortality_total
                 
                 # Feed per bird
-                siaf_sheet.cell(row=row, column=27, value=feed_per_gram_per_bird)
+                siaf_sheet.cell(row=row, column=30, value=feed_per_gram_per_bird)
                 # Male mortality
-                siaf_sheet.cell(row=row, column=28, value=male_mortality_total)
+                siaf_sheet.cell(row=row, column=31, value=male_mortality_total)
                 # Female mortality
-                siaf_sheet.cell(row=row, column=29, value=female_mortality_total)
+                siaf_sheet.cell(row=row, column=32, value=female_mortality_total)
                 # Total mortality
-                siaf_sheet.cell(row=row, column=30, value=total_mortality)
+                siaf_sheet.cell(row=row, column=33, value=total_mortality)
                 
-                siaf_sheet.cell(row=row, column=31, value=record.medicine)
-                siaf_sheet.cell(row=row, column=32, value=record.notes)
+                siaf_sheet.cell(row=row, column=34, value=record.medicine)
+                siaf_sheet.cell(row=row, column=35, value=record.notes)
 
             # Add totals for SIAF sheet
             ws = siaf_sheet
@@ -457,12 +592,12 @@ def download_excel(request):
             
             # Calculate totals for numeric columns
             numeric_cols = [
-                2, 3, 4,  # Feed and Water
-                5, 6, 7, 8,  # Morning Eggs
-                9, 10, 11, 12,  # Evening Eggs
-                14, 16, 18, 20,  # AI Hours, Fogger Hours, Fan Hours, Light Hours
-                21, 22, 23, 24, 25, 26,  # Temperature readings
-                27, 28, 29, 30  # Feed per bird, Male Mortality, Female Mortality, Total Mortality
+                2, 3, 4, 5, 6, 7,  # Feed (male morning, male evening, female morning, female evening, total, water)
+                8, 9, 10, 11,  # Morning Eggs
+                12, 13, 14, 15,  # Evening Eggs
+                17, 19, 21, 23,  # AI Hours, Fogger Hours, Fan Hours, Light Hours
+                24, 25, 26, 27, 28, 29,  # Temperature readings
+                30, 31, 32, 33  # Feed per bird, Male Mortality, Female Mortality, Total Mortality
             ]
             for col in numeric_cols:
                 total = 0
@@ -511,6 +646,9 @@ def fetch_record_SIAF(request):
             if record:
                 # Calculate feed per bird
                 feed_per_gram_per_bird = 0
+                male_feed_per_bird = 0
+                female_feed_per_bird = 0
+                egg_percentage = 0
                 total_current_birds = 0
                 
                 # Get active male and female birds
@@ -522,19 +660,60 @@ def fetch_record_SIAF(request):
                 total_current_birds = male_current_birds + female_current_birds
                 
                 if record and total_current_birds > 0:
-                    total_feed_kg = (record.feed_morning or 0) + (record.feed_evening or 0)
+                    # Get total feed for the day (male + female or legacy)
+                    male_feed = (record.feed_male_morning or 0) + (record.feed_male_evening or 0)
+                    female_feed = (record.feed_female_morning or 0) + (record.feed_female_evening or 0)
+                    legacy_feed = (record.feed_morning or 0) + (record.feed_evening or 0)
+                    
+                    # Use new fields if available, otherwise use legacy
+                    if male_feed > 0 or female_feed > 0:
+                        total_feed_kg = male_feed + female_feed
+                    else:
+                        total_feed_kg = legacy_feed
+                    
                     total_feed_grams = total_feed_kg * 1000
                     feed_per_gram_per_bird = round(total_feed_grams / total_current_birds, 2)
+                    
+                    # Calculate male and female feed per bird
+                    if male_current_birds > 0:
+                        male_feed_kg = (record.feed_male_morning or 0) + (record.feed_male_evening or 0)
+                        male_feed_grams = male_feed_kg * 1000
+                        male_feed_per_bird = round(male_feed_grams / male_current_birds, 2)
+                    
+                    if female_current_birds > 0:
+                        female_feed_kg = (record.feed_female_morning or 0) + (record.feed_female_evening or 0)
+                        female_feed_grams = female_feed_kg * 1000
+                        female_feed_per_bird = round(female_feed_grams / female_current_birds, 2)
+                    
+                    # Calculate egg percentage
+                    total_eggs = (record.total_egg_morning or 0) + (record.total_egg_evening or 0)
+                    if female_current_birds > 0:
+                        egg_percentage = round((total_eggs / female_current_birds) * 100, 2)
                 
-                # Get daily closing stock from FeedStock for the date
-                # Try to get exact date first, then get the most recent record on or before that date
-                feed_stock = FeedStock.objects.filter(date=date).first()
-                if not feed_stock:
-                    # If no exact match, get the most recent FeedStock on or before this date
-                    feed_stock = FeedStock.objects.filter(date__lte=date).order_by('-date').first()
-                
-                daily_closing_stock = feed_stock.kg if feed_stock else 0
-                daily_closing_bundles = feed_stock.bundles if feed_stock else 0
+                # Calculate daily closing stock (total received - total used up to this date)
+                # Get total stock received up to this date
+                total_stock_received = FeedStock.objects.filter(
+                    date__lte=date
+                ).aggregate(models.Sum('kg'))['kg__sum'] or 0
+
+                # Get total feed used up to this date (including all daily records up to and including this date)
+                siaf_records = DailyRecordSIAF.objects.filter(date__lte=date)
+                total_feed_used = 0
+                for rec in siaf_records:
+                    # New fields (male and female)
+                    male_feed = (rec.feed_male_morning or 0) + (rec.feed_male_evening or 0)
+                    female_feed = (rec.feed_female_morning or 0) + (rec.feed_female_evening or 0)
+                    # Legacy fields (for backward compatibility)
+                    legacy_feed = (rec.feed_morning or 0) + (rec.feed_evening or 0)
+                    # Use new fields if available, otherwise use legacy fields
+                    if male_feed > 0 or female_feed > 0:
+                        total_feed_used += male_feed + female_feed
+                    else:
+                        total_feed_used += legacy_feed
+
+                # Calculate daily closing stock
+                daily_closing_stock = round(total_stock_received - total_feed_used, 2)
+                daily_closing_bundles = round(daily_closing_stock / 60, 2)
                 
                 # Get mortality counts for the date
                 male_mortality_total = MaleBirdsMortality.objects.filter(date=date).aggregate(
@@ -546,6 +725,10 @@ def fetch_record_SIAF(request):
                 return JsonResponse({
                     'success': True,
                     'data': {
+                        'feed_male_morning': record.feed_male_morning,
+                        'feed_male_evening': record.feed_male_evening,
+                        'feed_female_morning': record.feed_female_morning,
+                        'feed_female_evening': record.feed_female_evening,
                         'feed_morning': record.feed_morning,
                         'feed_evening': record.feed_evening,
                         'water_intake': record.water_intake,
@@ -574,11 +757,17 @@ def fetch_record_SIAF(request):
                         'temperature_5': record.temperature_5,
                         'temperature_6': record.temperature_6,
                         'feed_per_gram_per_bird': feed_per_gram_per_bird,
+                        'male_feed_per_bird': male_feed_per_bird,
+                        'female_feed_per_bird': female_feed_per_bird,
+                        'egg_percentage': egg_percentage,
                         'daily_closing_stock': daily_closing_stock,
                         'daily_closing_bundles': daily_closing_bundles,
                         'male_mortality': male_mortality_total,
                         'female_mortality': female_mortality_total,
                         'total_mortality': total_mortality,
+                        'male_current_birds': male_current_birds,
+                        'female_current_birds': female_current_birds,
+                        'total_current_birds': total_current_birds,
                     }
                 })
             return JsonResponse({'success': False, 'message': 'No record found for this date'})
@@ -864,14 +1053,20 @@ def feed_stock_dashboard(request):
                 date__lte=selected_date
             ).aggregate(models.Sum('kg'))['kg__sum'] or 0
 
-            # Calculate total feed used up to selected date
-            siaf_feed_used = DailyRecordSIAF.objects.filter(
-                date__lte=selected_date
-            ).aggregate(
-                morning=models.Sum('feed_morning'),
-                evening=models.Sum('feed_evening')
-            )
-            total_feed_used = (siaf_feed_used['morning'] or 0) + (siaf_feed_used['evening'] or 0)
+            # Calculate total feed used up to selected date (including both male and female, or legacy fields)
+            siaf_records = DailyRecordSIAF.objects.filter(date__lte=selected_date)
+            total_feed_used = 0
+            for record in siaf_records:
+                # New fields (male and female)
+                male_feed = (record.feed_male_morning or 0) + (record.feed_male_evening or 0)
+                female_feed = (record.feed_female_morning or 0) + (record.feed_female_evening or 0)
+                # Legacy fields (for backward compatibility)
+                legacy_feed = (record.feed_morning or 0) + (record.feed_evening or 0)
+                # Use new fields if available, otherwise use legacy fields
+                if male_feed > 0 or female_feed > 0:
+                    total_feed_used += male_feed + female_feed
+                else:
+                    total_feed_used += legacy_feed
 
             # Calculate daily closing stock (total received - total used up to selected date)
             closing_stock_kg = total_stock_received - total_feed_used
@@ -882,7 +1077,16 @@ def feed_stock_dashboard(request):
 
             today_feed_used = 0
             if today_siaf:
-                today_feed_used = (today_siaf.feed_morning or 0) + (today_siaf.feed_evening or 0)
+                # New fields
+                male_feed = (today_siaf.feed_male_morning or 0) + (today_siaf.feed_male_evening or 0)
+                female_feed = (today_siaf.feed_female_morning or 0) + (today_siaf.feed_female_evening or 0)
+                # Legacy fields
+                legacy_feed = (today_siaf.feed_morning or 0) + (today_siaf.feed_evening or 0)
+                # Use new fields if available, otherwise use legacy fields
+                if male_feed > 0 or female_feed > 0:
+                    today_feed_used = male_feed + female_feed
+                else:
+                    today_feed_used = legacy_feed
 
             return JsonResponse({
                 'success': True,
@@ -1924,3 +2128,235 @@ def female_birds_download_excel(request):
             return JsonResponse({'success': False, 'message': str(e)})
 
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+# Egg Out Views
+@login_required
+def eggout_save(request):
+    """Save or update egg out entry"""
+    if request.method == 'POST':
+        try:
+            date_str = request.POST.get('date')
+            egg_out_count = request.POST.get('egg_out_count')
+            notes = request.POST.get('notes', '')
+            
+            if not date_str or egg_out_count is None:
+                return JsonResponse({'success': False, 'message': 'Date and egg out count are required'})
+            
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            egg_out_count = int(egg_out_count)
+            
+            egg_out, created = EggOut.objects.update_or_create(
+                date=date,
+                defaults={
+                    'egg_out_count': egg_out_count,
+                    'notes': notes
+                }
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Egg out entry saved successfully',
+                'id': egg_out.id
+            })
+        except ValueError as e:
+            return JsonResponse({'success': False, 'message': 'Invalid input data'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+@login_required
+def eggout_list(request):
+    """Get list of egg out entries"""
+    if request.method == 'GET':
+        try:
+            start_date = request.GET.get('start_date')
+            end_date = request.GET.get('end_date')
+            
+            query = EggOut.objects.all()
+            
+            if start_date:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                query = query.filter(date__gte=start_date)
+            
+            if end_date:
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                query = query.filter(date__lte=end_date)
+            
+            entries = query.order_by('-date').values('id', 'date', 'egg_out_count', 'notes')
+            return JsonResponse({
+                'success': True,
+                'entries': list(entries)
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+@login_required
+def eggout_get(request, eggout_id):
+    """Get single egg out entry for editing"""
+    if request.method == 'GET':
+        try:
+            egg_out = EggOut.objects.get(id=eggout_id)
+            return JsonResponse({
+                'success': True,
+                'id': egg_out.id,
+                'date': egg_out.date.strftime('%Y-%m-%d'),
+                'egg_out_count': egg_out.egg_out_count,
+                'notes': egg_out.notes
+            })
+        except EggOut.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Entry not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+@login_required
+def eggout_delete(request, eggout_id):
+    """Delete an egg out entry"""
+    if request.method == 'POST':
+        try:
+            egg_out = EggOut.objects.get(id=eggout_id)
+            egg_out.delete()
+            return JsonResponse({'success': True, 'message': 'Entry deleted successfully'})
+        except EggOut.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Entry not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+@login_required
+def eggout_dashboard(request):
+    """Get egg out dashboard data with optional date range filtering"""
+    if request.method == 'GET':
+        try:
+            from django.db.models import Q, F
+            from datetime import datetime
+            
+            # Get date range from query parameters
+            start_date = request.GET.get('start_date')
+            end_date = request.GET.get('end_date')
+            
+            # Build query for SIAF records
+            siaf_query = DailyRecordSIAF.objects.all()
+            if start_date:
+                try:
+                    start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                    siaf_query = siaf_query.filter(date__gte=start_date)
+                except ValueError:
+                    pass
+            
+            if end_date:
+                try:
+                    end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                    siaf_query = siaf_query.filter(date__lte=end_date)
+                except ValueError:
+                    pass
+            
+            # Calculate total eggs
+            total_eggs = 0
+            for record in siaf_query:
+                morning_eggs = record.total_egg_morning or 0
+                evening_eggs = record.total_egg_evening or 0
+                total_eggs += morning_eggs + evening_eggs
+            
+            # Build query for EggOut records
+            eggout_query = EggOut.objects.all()
+            if start_date:
+                eggout_query = eggout_query.filter(date__gte=start_date)
+            if end_date:
+                eggout_query = eggout_query.filter(date__lte=end_date)
+            
+            # Get total egg out
+            total_egg_out = eggout_query.aggregate(
+                total=models.Sum('egg_out_count')
+            )['total'] or 0
+            
+            # Calculate balance
+            balance_eggs = total_eggs - total_egg_out
+            
+            return JsonResponse({
+                'success': True,
+                'total_eggs': round(total_eggs, 2),
+                'total_egg_out': total_egg_out,
+                'balance_eggs': round(balance_eggs, 2)
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+@login_required
+def eggout_download_excel(request):
+    """Download egg out report as Excel file"""
+    if request.method == 'GET':
+        try:
+            start_date = request.GET.get('start_date')
+            end_date = request.GET.get('end_date')
+            
+            query = EggOut.objects.all()
+            
+            if start_date:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                query = query.filter(date__gte=start_date)
+            else:
+                start_date = "N/A"
+            
+            if end_date:
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                query = query.filter(date__lte=end_date)
+            else:
+                end_date = "N/A"
+            
+            entries = query.order_by('-date')
+            
+            # Create workbook
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Egg Out Report"
+            
+            # Add headers
+            headers = ['Date', 'Egg Out Count', 'Notes']
+            for col_num, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col_num)
+                cell.value = header
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            
+            # Add data
+            for row_num, entry in enumerate(entries, 2):
+                ws.cell(row=row_num, column=1).value = entry.date.strftime('%Y-%m-%d')
+                ws.cell(row=row_num, column=2).value = entry.egg_out_count
+                ws.cell(row=row_num, column=3).value = entry.notes
+            
+            # Adjust column widths
+            ws.column_dimensions['A'].width = 15
+            ws.column_dimensions['B'].width = 18
+            ws.column_dimensions['C'].width = 30
+            
+            # Create response
+            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename="egg_out_report.xlsx"'
+            wb.save(response)
+            return response
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
+@login_required()
+def eggout(request):
+    user_groups = request.user.groups.all()
+    u = request.user
+    return render(request, "eggout.html", {'user_groups': user_groups, 'u': u})

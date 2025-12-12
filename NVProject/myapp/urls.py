@@ -17,6 +17,7 @@ urlpatterns = [
     path("get-user/<int:user_id>/", views.get_user, name="get_user"),
     path("females/", views.females, name="females"),  # Make sure the name matches exactly
     path("males/", views.males, name="males"),
+    path("eggout/", views.eggout, name="eggout"),
     # Feed Stock URLs
     path("feed-stock-save/", views.feed_stock_save, name="feed_stock_save"),
     path("feed-stock-list/", views.feed_stock_list, name="feed_stock_list"),
@@ -54,4 +55,12 @@ urlpatterns = [
     path("female-birds-dashboard/", views.female_birds_dashboard, name="female_birds_dashboard"),
     path("female-birds-report-data/", views.female_birds_report_data, name="female_birds_report_data"),
     path("female-birds-download-excel/", views.female_birds_download_excel, name="female_birds_download_excel"),
+    
+    # Egg Out URLs
+    path("eggout-save/", views.eggout_save, name="eggout_save"),
+    path("eggout-list/", views.eggout_list, name="eggout_list"),
+    path("eggout-get/<int:eggout_id>/", views.eggout_get, name="eggout_get"),
+    path("eggout-delete/<int:eggout_id>/", views.eggout_delete, name="eggout_delete"),
+    path("eggout-dashboard/", views.eggout_dashboard, name="eggout_dashboard"),
+    path("eggout-download-excel/", views.eggout_download_excel, name="eggout_download_excel"),
 ]

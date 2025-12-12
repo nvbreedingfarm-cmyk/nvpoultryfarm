@@ -3,22 +3,36 @@ from django.utils import timezone
 
 class DailyRecordSIAF(models.Model):
     date = models.DateField(default=timezone.now)
-    # Feed Data
-    feed_morning = models.IntegerField(null=True)
+    
+    # Feed Data - Male Birds
+    feed_male_morning = models.FloatField(null=True, blank=True)
+    feed_male_morning_bundles = models.FloatField(null=True, blank=True)
+    feed_male_evening = models.FloatField(null=True, blank=True)
+    feed_male_evening_bundles = models.FloatField(null=True, blank=True)
+    
+    # Feed Data - Female Birds
+    feed_female_morning = models.FloatField(null=True, blank=True)
+    feed_female_morning_bundles = models.FloatField(null=True, blank=True)
+    feed_female_evening = models.FloatField(null=True, blank=True)
+    feed_female_evening_bundles = models.FloatField(null=True, blank=True)
+    
+    # Legacy fields for backward compatibility
+    feed_morning = models.IntegerField(null=True, blank=True)
     feed_morning_bundles = models.FloatField(null=True, blank=True)
-    feed_evening = models.IntegerField(null=True)
+    feed_evening = models.IntegerField(null=True, blank=True)
     feed_evening_bundles = models.FloatField(null=True, blank=True)
-    water_intake = models.FloatField(null=True)
+    
+    water_intake = models.FloatField(null=True, blank=True)
     
     # Egg Collection Data
     # Morning Collection
-    tray_egg_morning = models.IntegerField(null=True)
-    total_egg_morning = models.IntegerField(null=True)
+    tray_egg_morning = models.FloatField(null=True)
+    total_egg_morning = models.FloatField(null=True)
     damaged_egg_morning = models.IntegerField(null=True)
     double_egg_morning = models.IntegerField(null=True)
     # Evening Collection
-    tray_egg_evening = models.IntegerField(null=True)
-    total_egg_evening = models.IntegerField(null=True)
+    tray_egg_evening = models.FloatField(null=True)
+    total_egg_evening = models.FloatField(null=True)
     damaged_egg_evening = models.IntegerField(null=True)
     double_egg_evening = models.IntegerField(null=True)
     
@@ -179,3 +193,19 @@ class FemaleBirdsMortality(models.Model):
     
     def __str__(self):
         return f"Female Birds Mortality - {self.date}: {self.mortality_count} birds"
+
+
+class EggOut(models.Model):
+    """Track egg out records"""
+    date = models.DateField(default=timezone.now)
+    egg_out_count = models.IntegerField(default=0)
+    notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-date']
+        unique_together = ('date',)
+    
+    def __str__(self):
+        return f"Egg Out - {self.date}: {self.egg_out_count} eggs"
