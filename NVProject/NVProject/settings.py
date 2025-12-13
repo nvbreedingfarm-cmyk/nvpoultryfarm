@@ -32,6 +32,9 @@ ALLOWED_HOSTS = [
     "nvpoultryfarm.onrender.com",
     "localhost",
     "127.0.0.1",
+    "nvfarms.in",
+    "www.nvfarms.in",
+    "siaf.nvfarms.in",
 ]
 
 
