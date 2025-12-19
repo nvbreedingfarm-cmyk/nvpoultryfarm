@@ -84,7 +84,7 @@
             <div class="modal-body">
                 <!-- Report Title for Print -->
                 <div class="print-title" style="display: none;">
-                    <h2>NV Poultry Farm - Daily Report</h2>
+                    <h2>SIAF - Daily Report</h2>
                     <p>Date: <span id="print-date"></span></p>
                 </div>
 
@@ -125,23 +125,31 @@
                             <div class="card-body">
                                 <div class="data-row">
                                     <span class="label">Total Feed:</span>
-                                    <span class="value" id="modal-feed-total">-</span> kg
+                                    <span class="value" id="modal-feed-total">-</span><span class="unit">kg</span>
                                 </div>
                                 <div class="data-row">
                                     <span class="label">Per Bird Avg:</span>
-                                    <span class="value" id="modal-feed-per-bird">-</span> g
+                                    <span class="value" id="modal-feed-per-bird">-</span><span class="unit">g</span>
                                 </div>
                                 <div class="data-row">
                                     <span class="label">Male Avg:</span>
-                                    <span class="value" id="modal-feed-male-avg">-</span> g
+                                    <span class="value" id="modal-feed-male-avg">-</span><span class="unit">g</span>
+                                </div>
+                                <div class="data-row">
+                                    <span class="label">Feed Taken Male:</span>
+                                    <span class="value" id="modal-feed-male-kg">-</span><span class="unit">kg</span>
                                 </div>
                                 <div class="data-row">
                                     <span class="label">Female Avg:</span>
-                                    <span class="value" id="modal-feed-female-avg">-</span> g
+                                    <span class="value" id="modal-feed-female-avg">-</span><span class="unit">g</span>
+                                </div>
+                                <div class="data-row">
+                                    <span class="label">Feed Taken Female:</span>
+                                    <span class="value" id="modal-feed-female-kg">-</span><span class="unit">kg</span>
                                 </div>
                                 <div class="data-row highlight">
                                     <span class="label">Water:</span>
-                                    <span class="value" id="modal-water-intake">-</span> ltr
+                                    <span class="value" id="modal-water-intake">-</span><span class="unit">ltr</span>
                                 </div>
                             </div>
                         </div>
@@ -171,15 +179,15 @@
                             <div class="card-body">
                                 <div class="data-row">
                                     <span class="label">Male Birds:</span>
-                                    <span class="value" id="modal-current-male-birds">-</span> birds
+                                    <span class="value" id="modal-current-male-birds">-</span><span class="unit">birds</span>
                                 </div>
                                 <div class="data-row">
                                     <span class="label">Female Birds:</span>
-                                    <span class="value" id="modal-current-female-birds">-</span> birds
+                                    <span class="value" id="modal-current-female-birds">-</span><span class="unit">birds</span>
                                 </div>
                                 <div class="data-row">
                                     <span class="label">Total Birds:</span>
-                                    <span class="value" id="modal-current-total-birds">-</span> birds
+                                    <span class="value" id="modal-current-total-birds">-</span><span class="unit">birds</span>
                                 </div>
                             </div>
                         </div>
@@ -251,6 +259,7 @@
                                     <span class="equipment-label">AI</span>
                                     <span class="equipment-status" id="modal-ai-status">-</span>
                                     <span class="equipment-hours" id="modal-ai-hours">0h</span>
+                                    <span class="equipment-birds" id="modal-ai-birds-count">-</span>
                                 </div>
                                 <div class="equipment-item">
                                     <span class="equipment-label">Fogger</span>
@@ -470,6 +479,23 @@
         padding: 6px 0;
         border-bottom: 1px solid #edf2f7;
         font-size: 0.9rem;
+        min-height: 1.5em;
+    }
+
+    .data-row .label {
+        flex: 1 1 auto;
+        padding-right: 10px;
+        color: #4a5568;
+        font-weight: 500;
+    }
+
+    .data-row .value {
+        flex: 0 0 auto;
+        text-align: right;
+        min-width: 70px;
+        color: #1a202c;
+        font-weight: 700;
+        margin-right: 4px;
     }
 
     .data-row:last-child {
@@ -492,10 +518,15 @@
     .value {
         color: #1a202c;
         font-weight: 700;
-        text-align: right;
     }
 
-    /* Temperature Grid */
+    .unit {
+        color: #4a5568;
+        font-weight: 400;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+        margin-left: 2px;
+    }
     .temp-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -559,6 +590,16 @@
     .equipment-hours {
         font-size: 0.75rem;
         color: #718096;
+    }
+
+    .equipment-birds {
+        font-size: 0.7rem;
+        color: #4a5568;
+        font-weight: 500;
+        margin-top: 2px;
+        padding: 2px 4px;
+        background: #edf2f7;
+        border-radius: 2px;
     }
 
     /* Footer Section */
@@ -756,7 +797,9 @@
             border-bottom: 0.5px solid #ccc;
             display: flex;
             justify-content: space-between;
+            align-items: center;
             font-size: 7.5pt;
+            min-height: 3.5mm;
         }
 
         .data-row:last-child {
@@ -769,13 +812,23 @@
         }
 
         .label {
-            flex: 1;
+            flex: 1 1 auto;
+            padding-right: 3mm;
         }
 
         .value {
             text-align: right;
             font-weight: 700;
-            min-width: 50px;
+            min-width: 22mm;
+            flex: 0 0 auto;
+            margin-right: 1mm;
+        }
+
+        .unit {
+            margin-left: 1mm;
+            font-weight: 400;
+            font-size: 6.5pt;
+            flex-shrink: 0;
         }
 
         .temp-grid {
@@ -833,6 +886,12 @@
 
         .equipment-hours {
             font-size: 6pt;
+        }
+
+        .equipment-birds {
+            font-size: 5.5pt;
+            margin-top: 1mm;
+            padding: 0.5mm 1mm;
         }
 
         .report-footer {
@@ -995,13 +1054,18 @@
                     const eveningTotal = (feedMaleEvening + feedFemaleEvening) || feedEvening;
                     const totalFeed = (morningTotal + eveningTotal).toFixed(2);
                     
-                    // Calculate feed averages
+                    // Get male and female feed kg and per bird averages
+                    const maleFeedKg = parseFloat(data.male_feed_kg || 0).toFixed(2);
+                    const femaleFeedKg = parseFloat(data.female_feed_kg || 0).toFixed(2);
                     const maleFeedAvg = data.male_feed_per_bird || '0';
                     const femaleFeedAvg = data.female_feed_per_bird || '0';
                     
                     document.getElementById('modal-feed-total').textContent = totalFeed;
+                    document.getElementById('modal-feed-per-bird').textContent = data.feed_per_gram_per_bird || '0';
                     document.getElementById('modal-feed-male-avg').textContent = maleFeedAvg;
+                    document.getElementById('modal-feed-male-kg').textContent = maleFeedKg;
                     document.getElementById('modal-feed-female-avg').textContent = femaleFeedAvg;
+                    document.getElementById('modal-feed-female-kg').textContent = femaleFeedKg;
                     document.getElementById('modal-water-intake').textContent = data.water_intake || '0';
 
                     // Daily Totals - Egg Information
@@ -1045,6 +1109,7 @@
                     // Equipment Status
                     document.getElementById('modal-ai-status').textContent = data.artificial_insemination || 'No';
                     document.getElementById('modal-ai-hours').textContent = (data.ai_hours || '0') + 'h';
+                    document.getElementById('modal-ai-birds-count').textContent = (data.ai_birds_count || '-') + ' birds';
                     document.getElementById('modal-fogger-status').textContent = data.fogger_used || 'No';
                     document.getElementById('modal-fogger-hours').textContent = (data.fogger_hours || '0') + 'h';
                     document.getElementById('modal-fan-status').textContent = data.fan_used || 'No';

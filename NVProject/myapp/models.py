@@ -39,6 +39,7 @@ class DailyRecordSIAF(models.Model):
     # Equipment Status
     artificial_insemination = models.CharField(max_length=3, default='No')  # Yes/No
     ai_hours = models.FloatField(null=True, blank=True)
+    ai_birds_count = models.IntegerField(null=True, blank=True)  # Number of birds for AI
     fogger_used = models.CharField(max_length=3, default='No')  # Yes/No
     fogger_hours = models.FloatField(null=True, blank=True)
     fan_used = models.CharField(max_length=3, default='No')  # Yes/No
