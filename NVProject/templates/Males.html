@@ -12,6 +12,8 @@
                 <i class="fas fa-chart-line me-2"></i><span class="d-none d-sm-inline">Dashboard</span>
             </button>
         </li>
+        {% for group in user_groups %}
+        {% if group.name == 'admin'%}
         <li class="nav-item" role="presentation">
             <button class="nav-link fw-semibold" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock" type="button" role="tab">
                 <i class="fas fa-boxes me-2"></i><span class="d-none d-sm-inline">Stock</span>
@@ -22,6 +24,8 @@
                 <i class="fas fa-skull me-2"></i><span class="d-none d-sm-inline">Mortality</span>
             </button>
         </li>
+        {% endif %}
+        {% endfor %}
         <li class="nav-item" role="presentation">
             <button class="nav-link fw-semibold" id="report-tab" data-bs-toggle="tab" data-bs-target="#report" type="button" role="tab">
                 <i class="fas fa-file-alt me-2"></i><span class="d-none d-sm-inline">Report</span>
