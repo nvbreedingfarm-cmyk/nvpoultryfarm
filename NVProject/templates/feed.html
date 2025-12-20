@@ -96,9 +96,10 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="feedBundles" class="form-label fw-bold">Bundles (Auto-calculated)</label>
+                                <label for="feedBundles" class="form-label fw-bold">Bundles</label>
                                 <input type="number" class="form-control form-control-lg" id="feedBundles" name="bundles" step="0.01" 
-                                       readonly style="background-color: #f0f0f0;">
+                                       placeholder="Enter bundles or auto-calculated from KG" min="0">
+                                <small class="form-text text-muted d-block mt-1">1 bundle = 60 KG</small>
                             </div>
 
                             <div class="col-md-6 mb-3">
@@ -317,6 +318,13 @@
         const kg = parseFloat(this.value) || 0;
         const bundles = (kg / 60).toFixed(2);
         document.getElementById('feedBundles').value = bundles;
+    });
+
+    // Auto-calculate KG when bundles is entered
+    document.getElementById('feedBundles').addEventListener('input', function() {
+        const bundles = parseFloat(this.value) || 0;
+        const kg = (bundles * 60).toFixed(2);
+        document.getElementById('feedKg').value = kg;
     });
 
     // Load feed stock entries on page load

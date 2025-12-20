@@ -1088,6 +1088,8 @@
                             else if (cardType === 'feed-per-bird-card') value = data.data.feed_per_gram_per_bird || '0';
                             else if (cardType === 'male-feed-bird-card') value = data.data.male_feed_per_bird || '0';
                             else if (cardType === 'female-feed-bird-card') value = data.data.female_feed_per_bird || '0';
+                            else if (cardType === 'feed-today-card') value = data.data.total_feed_today || '0';
+                            else if (cardType === 'closing-stock-card') value = data.data.closing_stock || '0';
 
                             valueElement.textContent = value;
                         }

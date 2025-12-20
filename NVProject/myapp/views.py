@@ -629,7 +629,11 @@ def download_excel(request):
                 total_current_birds = male_current_birds + female_current_birds
                 
                 if total_current_birds > 0:
-                    total_feed_kg = (record.feed_morning or 0) + (record.feed_evening or 0)
+                    # Use new fields if available, otherwise fall back to legacy fields
+                    male_feed_total = (record.feed_male_morning or 0) + (record.feed_male_evening or 0)
+                    female_feed_total = (record.feed_female_morning or 0) + (record.feed_female_evening or 0)
+                    legacy_feed_total = (record.feed_morning or 0) + (record.feed_evening or 0)
+                    total_feed_kg = (male_feed_total + female_feed_total) if (male_feed_total > 0 or female_feed_total > 0) else legacy_feed_total
                     total_feed_grams = total_feed_kg * 1000
                     feed_per_gram_per_bird = round(total_feed_grams / total_current_birds, 2)
                 
