@@ -1492,19 +1492,25 @@ def male_birds_mortality_save(request):
     if request.method == 'POST':
         try:
             mortality_id = request.POST.get('mortality_id')
+            batch_id = request.POST.get('batch_id')
             date = request.POST.get('date')
             mortality_count = request.POST.get('mortality_count')
             mortality_reason = request.POST.get('mortality_reason', '')
 
-            if not all([date, mortality_count]):
-                return JsonResponse({'success': False, 'message': 'Date and mortality count are required'})
+            if not all([date, mortality_count, batch_id]):
+                return JsonResponse({'success': False, 'message': 'Date, mortality count, and batch are required'})
 
             date = datetime.strptime(date, '%Y-%m-%d').date()
             mortality_count = int(mortality_count)
+            batch_id = int(batch_id)
+            
+            # Verify batch exists
+            batch = MaleBirdsStock.objects.get(id=batch_id)
 
             if mortality_id:
                 # Update existing
                 mortality = MaleBirdsMortality.objects.get(id=int(mortality_id))
+                mortality.batch = batch
                 mortality.date = date
                 mortality.mortality_count = mortality_count
                 mortality.mortality_reason = mortality_reason
@@ -1513,11 +1519,14 @@ def male_birds_mortality_save(request):
             else:
                 # Create new
                 mortality = MaleBirdsMortality.objects.create(
+                    batch=batch,
                     date=date,
                     mortality_count=mortality_count,
                     mortality_reason=mortality_reason
                 )
                 return JsonResponse({'success': True, 'message': 'Mortality record added successfully', 'id': mortality.id})
+        except MaleBirdsStock.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Selected batch not found'})
         except MaleBirdsMortality.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Mortality record not found'})
         except ValueError as e:
@@ -1938,19 +1947,25 @@ def female_birds_mortality_save(request):
     if request.method == 'POST':
         try:
             mortality_id = request.POST.get('mortality_id')
+            batch_id = request.POST.get('batch_id')
             date = request.POST.get('date')
             mortality_count = request.POST.get('mortality_count')
             mortality_reason = request.POST.get('mortality_reason', '')
 
-            if not all([date, mortality_count]):
-                return JsonResponse({'success': False, 'message': 'Date and mortality count are required'})
+            if not all([date, mortality_count, batch_id]):
+                return JsonResponse({'success': False, 'message': 'Date, mortality count, and batch are required'})
 
             date = datetime.strptime(date, '%Y-%m-%d').date()
             mortality_count = int(mortality_count)
+            batch_id = int(batch_id)
+            
+            # Verify batch exists
+            batch = FemaleBirdsStock.objects.get(id=batch_id)
 
             if mortality_id:
                 # Update existing
                 mortality = FemaleBirdsMortality.objects.get(id=int(mortality_id))
+                mortality.batch = batch
                 mortality.date = date
                 mortality.mortality_count = mortality_count
                 mortality.mortality_reason = mortality_reason
@@ -1959,6 +1974,7 @@ def female_birds_mortality_save(request):
             else:
                 # Create new
                 mortality = FemaleBirdsMortality.objects.create(
+                    batch=batch,
                     date=date,
                     mortality_count=mortality_count,
                     mortality_reason=mortality_reason

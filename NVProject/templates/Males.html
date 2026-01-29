@@ -218,6 +218,13 @@
                                 <input type="hidden" id="mortalityId">
                                 
                                 <div class="mb-3">
+                                    <label for="mortalityBatchId" class="form-label fw-semibold">Batch *</label>
+                                    <select class="form-control" id="mortalityBatchId" required>
+                                        <option value="">Select a batch...</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
                                     <label for="mortalityDate" class="form-label fw-semibold">Date *</label>
                                     <input type="date" class="form-control" id="mortalityDate" required>
                                 </div>
@@ -388,6 +395,12 @@
             <form id="mortalityForm">
                 <div class="modal-body">
                     <input type="hidden" id="mortalityId">
+                    <div class="mb-3">
+                        <label for="mortalityBatchId" class="form-label fw-semibold">Batch <span class="text-danger">*</span></label>
+                        <select class="form-control form-control-lg" id="mortalityBatchId" required>
+                            <option value="">Select a batch...</option>
+                        </select>
+                    </div>
                     <div class="mb-3">
                         <label for="mortalityDate" class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
                         <input type="date" class="form-control form-control-lg" id="mortalityDate" required>
@@ -943,6 +956,33 @@
                             </tr>
                         `).join('');
                     }
+                    
+                    // Also populate batch options in mortality form
+                    loadBatchOptions();
+                }
+            });
+    }
+
+    // Load batch options for mortality form
+    function loadBatchOptions() {
+        fetch('{% url "male_birds_stock_list" %}')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const batchSelects = document.querySelectorAll('#mortalityBatchId');
+                    batchSelects.forEach(select => {
+                        const currentValue = select.value;
+                        select.innerHTML = '<option value="">Select a batch...</option>';
+                        data.data.forEach(stock => {
+                            const option = document.createElement('option');
+                            option.value = stock.id;
+                            option.textContent = `Batch ${stock.batch_start_date} (${stock.initial_birds} birds)`;
+                            select.appendChild(option);
+                        });
+                        if (currentValue) {
+                            select.value = currentValue;
+                        }
+                    });
                 }
             });
     }
@@ -1104,6 +1144,7 @@
         e.preventDefault();
         const formData = new FormData();
         formData.append('mortality_id', document.getElementById('mortalityId').value);
+        formData.append('batch_id', document.getElementById('mortalityBatchId').value);
         formData.append('date', document.getElementById('mortalityDate').value);
         formData.append('mortality_count', document.getElementById('mortalityCount').value);
         formData.append('mortality_reason', document.getElementById('mortalityReason').value);

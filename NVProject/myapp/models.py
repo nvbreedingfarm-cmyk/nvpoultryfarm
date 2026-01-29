@@ -112,11 +112,8 @@ class MaleBirdsStock(models.Model):
         """Calculate current mortality for this batch"""
         if not self.batch_start_date:
             return 0
-        end_date = self.batch_end_date or timezone.now().date()
-        mortality = MaleBirdsMortality.objects.filter(
-            date__gte=self.batch_start_date,
-            date__lte=end_date
-        ).aggregate(models.Sum('mortality_count'))['mortality_count__sum'] or 0
+        # Use batch-specific mortality records when available
+        mortality = self.mortality_records.aggregate(models.Sum('mortality_count'))['mortality_count__sum'] or 0
         return mortality
     
     def get_current_birds(self):
@@ -130,6 +127,7 @@ class MaleBirdsStock(models.Model):
 
 class MaleBirdsMortality(models.Model):
     """Track male birds mortality records"""
+    batch = models.ForeignKey(MaleBirdsStock, on_delete=models.CASCADE, null=True, blank=True, related_name='mortality_records')
     date = models.DateField(default=timezone.now)
     mortality_count = models.IntegerField(default=0)
     mortality_reason = models.TextField(blank=True, null=True)
@@ -165,11 +163,8 @@ class FemaleBirdsStock(models.Model):
         """Calculate current mortality for this batch"""
         if not self.batch_start_date:
             return 0
-        end_date = self.batch_end_date or timezone.now().date()
-        mortality = FemaleBirdsMortality.objects.filter(
-            date__gte=self.batch_start_date,
-            date__lte=end_date
-        ).aggregate(models.Sum('mortality_count'))['mortality_count__sum'] or 0
+        # Use batch-specific mortality records when available
+        mortality = self.mortality_records.aggregate(models.Sum('mortality_count'))['mortality_count__sum'] or 0
         return mortality
     
     def get_current_birds(self):
@@ -183,6 +178,7 @@ class FemaleBirdsStock(models.Model):
 
 class FemaleBirdsMortality(models.Model):
     """Track female birds mortality records"""
+    batch = models.ForeignKey(FemaleBirdsStock, on_delete=models.CASCADE, null=True, blank=True, related_name='mortality_records')
     date = models.DateField(default=timezone.now)
     mortality_count = models.IntegerField(default=0)
     mortality_reason = models.TextField(blank=True, null=True)

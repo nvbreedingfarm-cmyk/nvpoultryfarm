@@ -456,11 +456,34 @@
             });
         }, 100);
 
-        // Add event listener to medicine field to prevent Enter submission
+        // Prevent form submission on Enter and move to next field instead
+        const form = document.querySelector('form');
+        const focusableElements = form.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], textarea, select, button');
+        
+        focusableElements.forEach((element, index) => {
+            element.addEventListener('keydown', function(e) {
+                // For textareas, allow Shift+Enter for new lines, but Enter alone moves to next field
+                if (e.key === 'Enter') {
+                    if (element.tagName === 'TEXTAREA' && e.shiftKey) {
+                        // Allow Shift+Enter in textareas to create new line
+                        return;
+                    }
+                    e.preventDefault();
+                    
+                    // Move to next focusable element
+                    const nextIndex = index + 1;
+                    if (nextIndex < focusableElements.length) {
+                        focusableElements[nextIndex].focus();
+                    }
+                }
+            });
+        });
+
+        // Add event listener to medicine field to allow Shift+Enter for new lines
         const medicineField = document.querySelector('textarea[name="medicine"]');
         if (medicineField) {
             medicineField.addEventListener('keydown', function(e) {
-                // Allow Enter with Shift to create new line
+                // Allow Enter with Shift to create new line, regular Enter moves to next field
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                 }
