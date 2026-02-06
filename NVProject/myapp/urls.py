@@ -63,4 +63,10 @@ urlpatterns = [
     path("eggout-delete/<int:eggout_id>/", views.eggout_delete, name="eggout_delete"),
     path("eggout-dashboard/", views.eggout_dashboard, name="eggout_dashboard"),
     path("eggout-download-excel/", views.eggout_download_excel, name="eggout_download_excel"),
+
+    # Backup & Restore URLs
+    path("export-backup/", views.export_backup, name="export_backup"),
+    path("import-backup/", views.import_backup, name="import_backup"),
+
+    path("backup/", views.backup, name="backup"),
 ]

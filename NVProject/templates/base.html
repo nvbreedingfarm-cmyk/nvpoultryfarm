@@ -265,6 +265,7 @@
                     <li><a href="{% url 'add_user' %}" {% if request.resolver_match.url_name == 'add_user' %}class="active"{% endif %}><i class="fas fa-user-plus"></i> Add User</a></li>
                     {% endif %}
                     {% endfor %}
+                    <li><a href="{% url 'backup' %}"><i class="fas fa-database"></i> Backup</a></li>
                     <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                     
                 </ul>

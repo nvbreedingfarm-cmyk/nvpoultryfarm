@@ -13,6 +13,8 @@ from django.contrib.auth.models import User, Group
 from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
+import json
+from django.core import serializers
 
 
 def login_view(request):
@@ -2493,3 +2495,202 @@ def eggout(request):
     user_groups = request.user.groups.all()
     u = request.user
     return render(request, "eggout.html", {'user_groups': user_groups, 'u': u})
+
+
+# Backup and Restore Views
+@login_required
+def export_backup(request):
+    """Export all database data as JSON"""
+    if request.method == 'GET':
+        try:
+            # Collect all data from all models
+            backup_data = {
+                'daily_records_siaf': list(DailyRecordSIAF.objects.values()),
+                'feed_stock': list(FeedStock.objects.values()),
+                'male_birds_stock': list(MaleBirdsStock.objects.values()),
+                'male_birds_mortality': list(MaleBirdsMortality.objects.values()),
+                'female_birds_stock': list(FemaleBirdsStock.objects.values()),
+                'female_birds_mortality': list(FemaleBirdsMortality.objects.values()),
+                'egg_out': list(EggOut.objects.values()),
+            }
+            
+            # Convert datetime objects to ISO format strings
+            def convert_datetimes(data):
+                if isinstance(data, dict):
+                    return {k: convert_datetimes(v) for k, v in data.items()}
+                elif isinstance(data, list):
+                    return [convert_datetimes(item) for item in data]
+                elif isinstance(data, datetime):
+                    return data.isoformat()
+                return data
+            
+            backup_data = convert_datetimes(backup_data)
+            
+            # Create JSON response
+            response = HttpResponse(
+                json.dumps(backup_data, indent=2, default=str),
+                content_type='application/json'
+            )
+            response['Content-Disposition'] = 'attachment; filename="nv_poultry_backup.json"'
+            return response
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+@login_required
+def import_backup(request):
+    """Import JSON backup data and restore to database"""
+    if request.method == 'POST':
+        try:
+            # Check if file is provided
+            if 'backup_file' not in request.FILES:
+                return JsonResponse({'success': False, 'message': 'No file provided'}, status=400)
+            
+            backup_file = request.FILES['backup_file']
+            
+            # Read JSON file
+            backup_content = backup_file.read().decode('utf-8')
+            backup_data = json.loads(backup_content)
+            
+            # Clear existing data
+            DailyRecordSIAF.objects.all().delete()
+            FeedStock.objects.all().delete()
+            MaleBirdsStock.objects.all().delete()
+            MaleBirdsMortality.objects.all().delete()
+            FemaleBirdsStock.objects.all().delete()
+            FemaleBirdsMortality.objects.all().delete()
+            EggOut.objects.all().delete()
+            
+            # Helper function to convert datetime strings
+            def convert_field(value):
+                if isinstance(value, str):
+                    try:
+                        # Try to parse as datetime
+                        return datetime.fromisoformat(value)
+                    except (ValueError, TypeError):
+                        try:
+                            # Try to parse as date
+                            return datetime.fromisoformat(value).date()
+                        except (ValueError, TypeError):
+                            return value
+                return value
+            
+            # Restore Batch data first (they don't depend on anything)
+            if 'male_birds_stock' in backup_data:
+                for record in backup_data['male_birds_stock']:
+                    # Preserve ID for foreign key relationships
+                    record_id = record.pop('id', None)
+                    if 'batch_start_date' in record and record['batch_start_date']:
+                        record['batch_start_date'] = convert_field(record['batch_start_date'])
+                    if 'batch_end_date' in record and record['batch_end_date']:
+                        record['batch_end_date'] = convert_field(record['batch_end_date'])
+                    if 'created_at' in record:
+                        record['created_at'] = convert_field(record['created_at'])
+                    if 'updated_at' in record:
+                        record['updated_at'] = convert_field(record['updated_at'])
+                    obj = MaleBirdsStock(**record)
+                    obj.id = record_id
+                    obj.save()
+            
+            if 'female_birds_stock' in backup_data:
+                for record in backup_data['female_birds_stock']:
+                    # Preserve ID for foreign key relationships
+                    record_id = record.pop('id', None)
+                    if 'batch_start_date' in record and record['batch_start_date']:
+                        record['batch_start_date'] = convert_field(record['batch_start_date'])
+                    if 'batch_end_date' in record and record['batch_end_date']:
+                        record['batch_end_date'] = convert_field(record['batch_end_date'])
+                    if 'created_at' in record:
+                        record['created_at'] = convert_field(record['created_at'])
+                    if 'updated_at' in record:
+                        record['updated_at'] = convert_field(record['updated_at'])
+                    obj = FemaleBirdsStock(**record)
+                    obj.id = record_id
+                    obj.save()
+            
+            # Restore Mortality data (depends on batch data)
+            if 'male_birds_mortality' in backup_data:
+                for record in backup_data['male_birds_mortality']:
+                    record_id = record.pop('id', None)
+                    batch_id = record.get('batch_id')
+                    if 'date' in record:
+                        record['date'] = convert_field(record['date'])
+                    if 'created_at' in record:
+                        record['created_at'] = convert_field(record['created_at'])
+                    if 'updated_at' in record:
+                        record['updated_at'] = convert_field(record['updated_at'])
+                    obj = MaleBirdsMortality(**record)
+                    obj.id = record_id
+                    obj.save()
+            
+            if 'female_birds_mortality' in backup_data:
+                for record in backup_data['female_birds_mortality']:
+                    record_id = record.pop('id', None)
+                    batch_id = record.get('batch_id')
+                    if 'date' in record:
+                        record['date'] = convert_field(record['date'])
+                    if 'created_at' in record:
+                        record['created_at'] = convert_field(record['created_at'])
+                    if 'updated_at' in record:
+                        record['updated_at'] = convert_field(record['updated_at'])
+                    obj = FemaleBirdsMortality(**record)
+                    obj.id = record_id
+                    obj.save()
+            
+            # Restore other data
+            if 'daily_records_siaf' in backup_data:
+                for record in backup_data['daily_records_siaf']:
+                    record_id = record.pop('id', None)
+                    if 'date' in record:
+                        record['date'] = convert_field(record['date'])
+                    if 'created_at' in record:
+                        record['created_at'] = convert_field(record['created_at'])
+                    if 'updated_at' in record:
+                        record['updated_at'] = convert_field(record['updated_at'])
+                    obj = DailyRecordSIAF(**record)
+                    obj.id = record_id
+                    obj.save()
+            
+            if 'feed_stock' in backup_data:
+                for record in backup_data['feed_stock']:
+                    record_id = record.pop('id', None)
+                    if 'date' in record:
+                        record['date'] = convert_field(record['date'])
+                    if 'created_at' in record:
+                        record['created_at'] = convert_field(record['created_at'])
+                    if 'updated_at' in record:
+                        record['updated_at'] = convert_field(record['updated_at'])
+                    obj = FeedStock(**record)
+                    obj.id = record_id
+                    obj.save()
+            
+            if 'egg_out' in backup_data:
+                for record in backup_data['egg_out']:
+                    record_id = record.pop('id', None)
+                    if 'date' in record:
+                        record['date'] = convert_field(record['date'])
+                    if 'created_at' in record:
+                        record['created_at'] = convert_field(record['created_at'])
+                    if 'updated_at' in record:
+                        record['updated_at'] = convert_field(record['updated_at'])
+                    obj = EggOut(**record)
+                    obj.id = record_id
+                    obj.save()
+            
+            return JsonResponse({'success': True, 'message': 'Backup imported successfully! All data has been restored.'})
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'message': 'Invalid JSON file format'}, status=400)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error importing backup: {str(e)}'}, status=400)
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
+@login_required()
+def backup(request):
+    user_groups = request.user.groups.all()
+    u = request.user
+    return render(request, "backup.html", {'user_groups': user_groups, 'u': u})
